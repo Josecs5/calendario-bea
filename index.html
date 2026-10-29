@@ -159,7 +159,6 @@
       <button id="k-bolsa" class="tecla" hidden>Abrir la bolsita</button>
     </div>
 
-    <button id="vuela" class="btn abajo" hidden>¡Vuela!</button>
     <button id="releer" class="btn btn-sec abajo" hidden>Volver a leer la nota</button>
 
     <section id="nota" class="nota" aria-labelledby="nota-fecha" hidden>
@@ -179,54 +178,56 @@
 import * as THREE from 'three';
 
 /* ==========================================================================
-   CONTENIDO: edita aquí los textos de cada día (1–24).
-   - alaIzquierda / alaDerecha: lo que dice cada ala al tocarla.
-   - nota: el mensaje de la nota que sale de la bolsita.
-   - bolsa: la instrucción de la etiqueta kraft (qué bolsita abrir).
-   - 0: presentación que se ve ANTES del 1 de diciembre (solo usa las dos alas).
+   CONTENIDO: edita aquí los textos.
+   - 0: presentación que se ve ANTES del 1 de diciembre.
+        alaIzquierda / alaDerecha: lo que dice cada ala al tocarla.
+   - 1–24: un día cada uno.
+        nota: el mensaje de la nota que sale de la bolsita.
+        bolsa: la instrucción de la etiqueta kraft (qué bolsita abrir).
    Todos los textos de ahora son DE EJEMPLO.
    ========================================================================== */
 const CONTENIDO = {
   0:  { alaIzquierda: 'Ejemplo: Hola, Bea. Soy la grulla que te acompañará en diciembre.', alaDerecha: 'Ejemplo: Cada día te traeré una bolsita. Vuelve a verme pronto.' },
-  1:  { alaIzquierda: 'Ejemplo: ¡Hola, Bea! Hoy empieza la cuenta atrás.',      alaDerecha: 'Ejemplo: Cada día de diciembre vendré a verte.',      nota: 'Ejemplo de nota del día 1. Aquí irá el mensaje de verdad.',  bolsa: 'Abre la bolsita 1' },
-  2:  { alaIzquierda: 'Ejemplo: Buenos días, dormilona.',                         alaDerecha: 'Ejemplo: Hoy traigo algo pequeñito.',                 nota: 'Ejemplo de nota del día 2.',                                  bolsa: 'Abre la bolsita 2' },
-  3:  { alaIzquierda: 'Ejemplo: Tercer día y ya te echo de menos.',               alaDerecha: 'Ejemplo: Toca la otra ala, que tiene más.',          nota: 'Ejemplo de nota del día 3.',                                  bolsa: 'Abre la bolsita 3' },
-  4:  { alaIzquierda: 'Ejemplo: Hoy hace frío ahí fuera.',                        alaDerecha: 'Ejemplo: Esto es para que entres en calor.',          nota: 'Ejemplo de nota del día 4.',                                  bolsa: 'Abre la bolsita 4' },
-  5:  { alaIzquierda: 'Ejemplo: Ya llevamos cinco.',                              alaDerecha: 'Ejemplo: Y me quedan muchas cosas por decirte.',      nota: 'Ejemplo de nota del día 5.',                                  bolsa: 'Abre la bolsita 5' },
-  6:  { alaIzquierda: 'Ejemplo: Feliz puente.',                                   alaDerecha: 'Ejemplo: Hoy toca algo para no hacer nada.',          nota: 'Ejemplo de nota del día 6.',                                  bolsa: 'Abre la bolsita 6' },
-  7:  { alaIzquierda: 'Ejemplo: Una semana entera de grullas.',                   alaDerecha: 'Ejemplo: ¿Ya tienes una favorita?',                   nota: 'Ejemplo de nota del día 7.',                                  bolsa: 'Abre la bolsita 7' },
-  8:  { alaIzquierda: 'Ejemplo: Hoy vengo con prisa.',                            alaDerecha: 'Ejemplo: Pero nunca sin algo para ti.',               nota: 'Ejemplo de nota del día 8.',                                  bolsa: 'Abre la bolsita 8' },
-  9:  { alaIzquierda: 'Ejemplo: Me he levantado pensando en ti.',                 alaDerecha: 'Ejemplo: Como casi siempre.',                         nota: 'Ejemplo de nota del día 9.',                                  bolsa: 'Abre la bolsita 9' },
-  10: { alaIzquierda: 'Ejemplo: Día diez, doble dígito.',                         alaDerecha: 'Ejemplo: Esto se pone serio.',                        nota: 'Ejemplo de nota del día 10.',                                 bolsa: 'Abre la bolsita 10' },
-  11: { alaIzquierda: 'Ejemplo: Hoy un recuerdo bonito.',                         alaDerecha: 'Ejemplo: Ya sabrás cuál cuando la abras.',            nota: 'Ejemplo de nota del día 11.',                                 bolsa: 'Abre la bolsita 11' },
-  12: { alaIzquierda: 'Ejemplo: Mitad de camino.',                                alaDerecha: 'Ejemplo: Lo mejor está por llegar.',                  nota: 'Ejemplo de nota del día 12.',                                 bolsa: 'Abre la bolsita 12' },
-  13: { alaIzquierda: 'Ejemplo: El trece no da mala suerte.',                     alaDerecha: 'Ejemplo: Hoy da una sorpresa.',                       nota: 'Ejemplo de nota del día 13.',                                 bolsa: 'Abre la bolsita 13' },
-  14: { alaIzquierda: 'Ejemplo: Hoy he volado más lejos.',                        alaDerecha: 'Ejemplo: Ha merecido la pena.',                       nota: 'Ejemplo de nota del día 14.',                                 bolsa: 'Abre la bolsita 14' },
-  15: { alaIzquierda: 'Ejemplo: Quince días de diciembre.',                       alaDerecha: 'Ejemplo: Y quince sonrisas, espero.',                 nota: 'Ejemplo de nota del día 15.',                                 bolsa: 'Abre la bolsita 15' },
-  16: { alaIzquierda: 'Ejemplo: Hoy, algo para compartir.',                       alaDerecha: 'Ejemplo: Conmigo, a ser posible.',                    nota: 'Ejemplo de nota del día 16.',                                 bolsa: 'Abre la bolsita 16' },
-  17: { alaIzquierda: 'Ejemplo: ¿Sabes lo que me gusta de ti?',                   alaDerecha: 'Ejemplo: Está escrito en la nota.',                   nota: 'Ejemplo de nota del día 17.',                                 bolsa: 'Abre la bolsita 17' },
-  18: { alaIzquierda: 'Ejemplo: Una semana para Nochebuena.',                     alaDerecha: 'Ejemplo: Ya huele a turrón.',                         nota: 'Ejemplo de nota del día 18.',                                 bolsa: 'Abre la bolsita 18' },
-  19: { alaIzquierda: 'Ejemplo: Hoy toca mimo.',                                  alaDerecha: 'Ejemplo: El de verdad te lo doy luego.',              nota: 'Ejemplo de nota del día 19.',                                 bolsa: 'Abre la bolsita 19' },
-  20: { alaIzquierda: 'Ejemplo: Veinte grullas ya.',                              alaDerecha: 'Ejemplo: Casi tengo una bandada.',                    nota: 'Ejemplo de nota del día 20.',                                 bolsa: 'Abre la bolsita 20' },
-  21: { alaIzquierda: 'Ejemplo: Hoy empieza el invierno.',                        alaDerecha: 'Ejemplo: Abrígate bien.',                             nota: 'Ejemplo de nota del día 21.',                                 bolsa: 'Abre la bolsita 21' },
-  22: { alaIzquierda: 'Ejemplo: Día de la lotería.',                              alaDerecha: 'Ejemplo: A mí ya me tocó contigo.',                   nota: 'Ejemplo de nota del día 22.',                                 bolsa: 'Abre la bolsita 22' },
-  23: { alaIzquierda: 'Ejemplo: Mañana es el último día.',                        alaDerecha: 'Ejemplo: Hoy, una pista de lo que viene.',            nota: 'Ejemplo de nota del día 23.',                                 bolsa: 'Abre la bolsita 23' },
-  24: { alaIzquierda: 'Ejemplo: ¡Feliz Nochebuena, Bea!',                         alaDerecha: 'Ejemplo: Hoy la bolsita es especial.',                nota: 'Ejemplo de nota del día 24. La última, la más bonita.',       bolsa: 'Abre la bolsita roja' },
+  1:  { nota: 'Ejemplo de nota del día 1. Aquí irá el mensaje de verdad.',  bolsa: 'Abre la bolsita 1' },
+  2:  { nota: 'Ejemplo de nota del día 2.',                                  bolsa: 'Abre la bolsita 2' },
+  3:  { nota: 'Ejemplo de nota del día 3.',                                  bolsa: 'Abre la bolsita 3' },
+  4:  { nota: 'Ejemplo de nota del día 4.',                                  bolsa: 'Abre la bolsita 4' },
+  5:  { nota: 'Ejemplo de nota del día 5.',                                  bolsa: 'Abre la bolsita 5' },
+  6:  { nota: 'Ejemplo de nota del día 6.',                                  bolsa: 'Abre la bolsita 6' },
+  7:  { nota: 'Ejemplo de nota del día 7.',                                  bolsa: 'Abre la bolsita 7' },
+  8:  { nota: 'Ejemplo de nota del día 8.',                                  bolsa: 'Abre la bolsita 8' },
+  9:  { nota: 'Ejemplo de nota del día 9.',                                  bolsa: 'Abre la bolsita 9' },
+  10: { nota: 'Ejemplo de nota del día 10.',                                 bolsa: 'Abre la bolsita 10' },
+  11: { nota: 'Ejemplo de nota del día 11.',                                 bolsa: 'Abre la bolsita 11' },
+  12: { nota: 'Ejemplo de nota del día 12.',                                 bolsa: 'Abre la bolsita 12' },
+  13: { nota: 'Ejemplo de nota del día 13.',                                 bolsa: 'Abre la bolsita 13' },
+  14: { nota: 'Ejemplo de nota del día 14.',                                 bolsa: 'Abre la bolsita 14' },
+  15: { nota: 'Ejemplo de nota del día 15.',                                 bolsa: 'Abre la bolsita 15' },
+  16: { nota: 'Ejemplo de nota del día 16.',                                 bolsa: 'Abre la bolsita 16' },
+  17: { nota: 'Ejemplo de nota del día 17.',                                 bolsa: 'Abre la bolsita 17' },
+  18: { nota: 'Ejemplo de nota del día 18.',                                 bolsa: 'Abre la bolsita 18' },
+  19: { nota: 'Ejemplo de nota del día 19.',                                 bolsa: 'Abre la bolsita 19' },
+  20: { nota: 'Ejemplo de nota del día 20.',                                 bolsa: 'Abre la bolsita 20' },
+  21: { nota: 'Ejemplo de nota del día 21.',                                 bolsa: 'Abre la bolsita 21' },
+  22: { nota: 'Ejemplo de nota del día 22.',                                 bolsa: 'Abre la bolsita 22' },
+  23: { nota: 'Ejemplo de nota del día 23.',                                 bolsa: 'Abre la bolsita 23' },
+  24: { nota: 'Ejemplo de nota del día 24. La última, la más bonita.',       bolsa: 'Abre la bolsita roja' },
 };
 
 const COLOR = { rojo: '#d0473f', blancoRoto: '#f3ede3', kraft: '#c4955f', rojoBolsa: '#a93b34', oro: '#e2c072' };
 const TEXTO = {
-  antes: 'La primera bolsita llega el 1 de diciembre',
   alas: 'Púlsame en las dos alas para ver algo interesante',
   traido: 'Te he traído esto. Tócame',
   bolsa: 'Toca la bolsita',
+  manana: (n) => `Mañana podrás abrir la bolsita ${n}`,
+  fin: 'Esta era la última bolsita: el calendario se ha acabado. ¡Feliz Navidad, Bea!',
 };
 const PRUEBA = new URLSearchParams(location.search).has('prueba');
-const FASES_CON_BOLSA = new Set(['regreso', 'colgando', 'cayendo', 'suelo', 'abriendo', 'nota', 'leida']);
-const FASES_EN_VUELO = new Set(['llegada', 'despegue', 'vacio', 'regreso']);
+const FASES_CON_BOLSA = new Set(['colgando', 'cayendo', 'suelo', 'abriendo', 'nota', 'leida']);
+const FASES_EN_VUELO = new Set(['llegada']);
 const FOV = 30, DIST = 20;
 const BASE_ALA = 0.14;         // ángulo de las alas abiertas (rad)
-const DUR_DESPEGUE = 1.15, DUR_VACIO = 0.8;
+const INICIO_DICIEMBRE = Date.UTC(2026, 10, 30, 23); // 1 de diciembre de 2026, 00:00 en Madrid
 const BW = 1, BH = 1.2, BD = 0.55, SOLAPA_H = 0.3, SOLAPA_ABIERTA = Math.PI - 0.45;
 
 const mqReducido = matchMedia('(prefers-reduced-motion: reduce)');
@@ -236,7 +237,7 @@ mqReducido.addEventListener('change', (e) => { reducido = e.matches; ajustar(); 
 const $ = (id) => document.getElementById(id);
 const ui = {
   titulo: $('titulo'), boc: $('bocadillo'), bocTexto: $('bocadillo-texto'), cola: $('cola'), colaPath: $('cola-path'),
-  vuela: $('vuela'), releer: $('releer'), nota: $('nota'), notaFecha: $('nota-fecha'), notaTexto: $('nota-texto'),
+  releer: $('releer'), nota: $('nota'), notaFecha: $('nota-fecha'), notaTexto: $('nota-texto'),
   notaBolsa: $('nota-bolsa'), cerrar: $('cerrar'), prueba: $('prueba'), pruebaDia: $('prueba-dia'),
   kIzq: $('k-izq'), kDer: $('k-der'), kGrulla: $('k-grulla'), kBolsa: $('k-bolsa'), sonda: $('sonda'),
 };
@@ -491,9 +492,10 @@ bolsa.visible = false;
 grulla.visible = false; // aparece volando en iniciarDia
 
 /* ---------- Estado ---------- */
-const est = { dia: null, fase: 'cargando', tf: 0, tocadas: { izq: false, der: false }, bocVisible: false, confeti: false };
+const est = { dia: null, fase: 'cargando', tf: 0, tocadas: { izq: false, der: false }, bocVisible: false, confeti: false,
+  abierta: false, avisoEn: 0, cuenta: false, escalaRuta: 1, desfase: 0 };
 let ruta = null; // recorrido de entrada por la pantalla
-const g = { x: 0, y: 0, s: 0.01, rumbo: RUMBO_DER, colocada: false, faseAla: 0, x0: 0, y0: 0, acel: 0, subida: 0, xIni: 0, yIni: 0 };
+const g = { x: 0, y: 0, s: 0.01, rumbo: RUMBO_DER, colocada: false, faseAla: 0 };
 const aleteo = { izq: -10, der: -10 };
 const b = { x: 0, y: 0, vx: 0, vy: 0, rz: 0, salto: 0 };
 const pend = { a: 0, w: 0, px: null, vx: null, ax: 0, largo: 1 };
@@ -508,6 +510,8 @@ function aPantalla(v) {
   return { x: (p.x + 1) / 2 * med.W, y: (1 - p.y) / 2 * med.H };
 }
 
+const conBolsa = () => FASES_CON_BOLSA.has(est.fase) || (est.fase === 'llegada' && est.dia > 0);
+
 /* Dónde debe estar cada cosa según la fase y el tamaño de pantalla */
 function objetivo() {
   const { W, H, ppu } = med;
@@ -516,7 +520,7 @@ function objetivo() {
   const rh = Math.max(abajo - arriba, 160);
   const o = { sueloPx: abajo };
   let sp, cy;
-  if (!FASES_CON_BOLSA.has(est.fase)) {
+  if (!conBolsa()) {
     sp = Math.min(rh * 0.8 / cm.h, (W - 32) * 0.84 / cm.w, 520 / cm.h);
     cy = arriba + rh / 2;
   } else {
@@ -576,17 +580,18 @@ function actualizarBocadillo() {
 
 /* ---------- Fases ---------- */
 function cambiarFase(f) {
+  const previa = est.fase;
   est.fase = f;
   est.tf = 0;
-  ui.vuela.hidden = !(f === 'alas' && est.tocadas.izq && est.tocadas.der);
   ui.releer.hidden = f !== 'leida';
   ui.nota.hidden = f !== 'nota';
-  ui.kIzq.hidden = ui.kDer.hidden = f !== 'alas' && f !== 'antes';
+  ui.kIzq.hidden = ui.kDer.hidden = f !== 'antes';
   ui.kGrulla.hidden = f !== 'colgando';
   ui.kBolsa.hidden = f !== 'suelo';
-  if (f === 'antes' || f === 'alas') decir(TEXTO.alas);
+  if (f === 'antes') decir(TEXTO.alas);
   else if (f === 'colgando') decir(TEXTO.traido);
   else if (f === 'suelo') decir(TEXTO.bolsa);
+  else if (f === 'leida') decir(textoHecho());
   else callar();
   if (f === 'nota') {
     const c = CONTENIDO[est.dia];
@@ -596,7 +601,7 @@ function cambiarFase(f) {
     colocarNota(objetivo());
     ui.cerrar.focus({ preventScroll: true });
   }
-  if (f === 'leida') ui.releer.focus({ preventScroll: true });
+  if (f === 'leida' && previa === 'nota') ui.releer.focus({ preventScroll: true });
   if (usaTeclado && f === 'colgando') ui.kGrulla.focus();
   if (usaTeclado && f === 'suelo') ui.kBolsa.focus();
   if (f === 'leida' && reducido) g.colocada = false;
@@ -607,6 +612,8 @@ function iniciarDia(dia) {
   est.tocadas = { izq: false, der: false };
   est.confeti = false;
   est.avisoEn = 0;
+  est.cuenta = false;
+  est.abierta = dia > 0 && estaAbierta(dia);
   marcarAla('izq', false);
   marcarAla('der', false);
   aleteo.izq = aleteo.der = -10;
@@ -614,18 +621,28 @@ function iniciarDia(dia) {
   restaurarPinza();
   solapa.rotation.x = 0;
   while (confeti.length) quitarConfeti(confeti.length - 1);
-  if (dia > 0) pintarBolsa(dia);
+  if (dia > 0) {
+    pintarBolsa(dia);
+    bolsa.visible = true;
+    b.x = 0;
+    if (est.abierta) dejarAbierta();
+  }
+  Object.assign(pend, { a: 0, w: 0, px: null, vx: null, ax: 0 });
   grulla.visible = true;
   grulla.rotation.set(0, 0, 0);
   g.colocada = false;
   // La grulla entra volando; el texto se prepara antes para que no se recoloque al llegar
-  ui.bocTexto.textContent = TEXTO.alas;
+  ui.bocTexto.textContent = dia === 0 ? TEXTO.alas : est.abierta ? textoHecho() : TEXTO.traido;
   medirBocadillo();
   cambiarFase('llegada');
   const o = objetivo();
-  // Recorrido: entra por la izquierda, cruza arriba, baja por la derecha, vuelve por abajo y acaba en el centro
-  const sv = o.gs * 0.55;
-  const P = (fx, fy) => new THREE.Vector3(aMundoX(fx * med.W) - cm.cx * sv, aMundoY(fy * med.H) - cm.cy * sv, 0);
+  // Recorrido: entra por la izquierda, cruza arriba, baja por la derecha, vuelve por abajo y acaba en el centro.
+  // Si trae la bolsita colgando, el recorrido va más alto para que la bolsa no se salga por abajo.
+  const lleva = dia > 0 && !est.abierta;
+  est.escalaRuta = dia > 0 ? 0.8 : 0.55;
+  const sv = o.gs * est.escalaRuta;
+  const alto = lleva ? (fy) => 0.2 + (fy - 0.3) * 0.55 : (fy) => fy;
+  const P = (fx, fy) => new THREE.Vector3(aMundoX(fx * med.W) - cm.cx * sv, aMundoY(alto(fy) * med.H) - cm.cy * sv, 0);
   ruta = new THREE.CatmullRomCurve3([
     P(-0.35, 0.42), P(0.3, 0.3), P(0.78, 0.34), P(0.82, 0.62), P(0.5, 0.76), P(0.16, 0.66), P(0.2, 0.5),
     new THREE.Vector3(o.gx, o.gy, 0),
@@ -635,42 +652,50 @@ function iniciarDia(dia) {
 }
 
 function tocarAla(lado) {
-  if (est.fase !== 'alas' && est.fase !== 'antes') return;
+  if (est.fase !== 'antes') return;
   est.tocadas[lado] = true;
   marcarAla(lado, true);
   aleteo[lado] = reloj;
   const c = CONTENIDO[est.dia];
   decir(lado === 'izq' ? c.alaIzquierda : c.alaDerecha);
-  if (est.fase === 'antes') { if (est.tocadas.izq && est.tocadas.der) est.avisoEn = reloj + 4; return; }
-  if (est.tocadas.izq && est.tocadas.der && ui.vuela.hidden) ui.vuela.hidden = false;
+  // Con las dos alas tocadas, a los 4 s la grulla pasa a la cuenta atrás
+  est.cuenta = false;
+  if (est.tocadas.izq && est.tocadas.der) est.avisoEn = reloj + 4;
 }
 
-function volar() {
-  if (est.fase !== 'alas') return;
-  g.x0 = g.x;
-  g.y0 = g.y;
-  const xFin = med.W / 2 / med.ppu + cm.w * g.s;
-  g.acel = (xFin - g.x0) / DUR_DESPEGUE ** 2;
-  g.subida = 0.16 * med.H / med.ppu / DUR_DESPEGUE ** 2;
-  if (reducido) {
-    grulla.visible = false;
-    cambiarFase('vacio');
-  } else {
-    cambiarFase('despegue');
-  }
+const ahora = () => Date.now() + est.desfase;
+function textoCuenta() {
+  const falta = INICIO_DICIEMBRE - ahora();
+  if (falta <= 0) return null;
+  const min = Math.ceil(falta / 60000);
+  const d = Math.floor(min / 1440), h = Math.floor((min % 1440) / 60), m = min % 60;
+  const cuantos = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+  const partes = [];
+  if (d) partes.push(cuantos(d, 'día', 'días'));
+  if (h) partes.push(cuantos(h, 'hora', 'horas'));
+  if (!d && !h) partes.push(cuantos(m, 'minuto', 'minutos'));
+  const verbo = partes.length === 1 && partes[0].startsWith('1 ') ? 'Falta' : 'Faltan';
+  return `${verbo} ${partes.join(' y ')} para que puedas abrir tu primera bolsita`;
+}
+const textoHecho = () => (est.dia === 24 ? TEXTO.fin : TEXTO.manana(est.dia + 1));
+
+/* Bolsitas ya abiertas: se recuerdan en el móvil (con ?prueba, solo mientras la página está abierta) */
+const abiertasPrueba = new Set();
+function estaAbierta(dia) {
+  if (PRUEBA) return abiertasPrueba.has(dia);
+  try { return localStorage.getItem(`bea-bolsita-${dia}`) === '1'; } catch { return false; }
+}
+function guardarAbierta(dia) {
+  if (PRUEBA) { abiertasPrueba.add(dia); return; }
+  try { localStorage.setItem(`bea-bolsita-${dia}`, '1'); } catch { /* sin almacenamiento */ }
+}
+const colorInterior = () => (est.dia === 24 ? '#4a1b18' : '#3b2a1c');
+function dejarAbierta() {
+  pinza.visible = false;
+  solapa.rotation.x = -SOLAPA_ABIERTA;
+  matTapa.color.set(colorInterior());
 }
 
-function empezarRegreso() {
-  cambiarFase('regreso');
-  const o = objetivo();
-  g.s = o.gs;
-  g.xIni = -med.W / 2 / med.ppu - cm.w * g.s - bm.w * o.bs;
-  g.yIni = o.gy + 0.1 * med.H / med.ppu;
-  Object.assign(pend, { a: reducido ? 0 : -0.35, w: 0, px: null, vx: null, ax: 0 });
-  grulla.visible = true;
-  bolsa.visible = true;
-}
-const durRegreso = () => (reducido ? 0.001 : 1.9);
 const durLlegada = () => (reducido ? 0.001 : 5.5);
 
 function soltar() {
@@ -693,10 +718,11 @@ function soltar() {
 
 function abrir() {
   if (est.fase !== 'suelo') return;
-  matTapa.color.set(est.dia === 24 ? '#4a1b18' : '#3b2a1c'); // se ve el interior
+  est.abierta = true;
+  guardarAbierta(est.dia);
+  matTapa.color.set(colorInterior()); // se ve el interior
   if (reducido) {
-    pinza.visible = false;
-    solapa.rotation.x = -SOLAPA_ABIERTA;
+    dejarAbierta();
     cambiarFase('nota');
   } else {
     cambiarFase('abriendo');
@@ -725,39 +751,34 @@ const easeOutBack = (p) => { const c1 = 1.4, c3 = c1 + 1; return 1 + c3 * (p - 1
 
 function actualizarFase() {
   const f = est.fase;
-  if (f === 'despegue' && est.tf >= DUR_DESPEGUE) { grulla.visible = false; cambiarFase('vacio'); }
-  else if (f === 'vacio' && est.tf >= DUR_VACIO) empezarRegreso();
-  else if (f === 'regreso' && est.tf >= durRegreso()) cambiarFase('colgando');
-  else if (f === 'llegada' && est.tf >= durLlegada()) cambiarFase(est.dia === 0 ? 'antes' : 'alas');
-  else if (f === 'antes' && est.avisoEn && reloj >= est.avisoEn) { est.avisoEn = 0; decir(TEXTO.antes); }
+  if (f === 'llegada' && est.tf >= durLlegada()) cambiarFase(est.dia === 0 ? 'antes' : est.abierta ? 'leida' : 'colgando');
+  else if (f === 'antes') {
+    if (est.avisoEn && reloj >= est.avisoEn) { est.avisoEn = 0; est.cuenta = true; }
+    if (est.cuenta) {
+      const texto = textoCuenta();
+      if (texto === null) { // ya es 1 de diciembre
+        if (PRUEBA) ui.pruebaDia.value = '1';
+        iniciarDia(1);
+      } else if (texto !== ui.bocTexto.textContent) decir(texto);
+    }
+  }
 }
 
 function actualizarGrulla(dt, t, o) {
   const f = est.fase;
   let rz = 0, amp = 0.17, freq = 0.9, base = BASE_ALA, flota = true, rumbo = RUMBO_DER;
-  if (f === 'despegue') {
-    const u = est.tf;
-    g.x = g.x0 + u * u * g.acel;
-    g.y = g.y0 + u * u * g.subida;
-    rz = Math.min(u * 0.5, 0.28); amp = 0.85; freq = 3.4; base = 0.12; flota = false;
-  } else if (f === 'regreso') {
-    const p = Math.min(est.tf / durRegreso(), 1), e = 1 - (1 - p) ** 3;
-    g.s = o.gs;
-    g.x = g.xIni + (o.gx - g.xIni) * e;
-    g.y = g.yIni + (o.gy - g.yIni) * e + Math.sin(e * Math.PI) * 0.05 * med.H / med.ppu;
-    rz = 0.22 * (1 - e); amp = 0.7 - 0.5 * e; freq = 3 - 2.1 * e; flota = false;
-  } else if (f === 'llegada') {
+  if (f === 'llegada') {
     const p = Math.min(est.tf / durLlegada(), 1), e = 0.5 * p + 0.5 * (1 - (1 - p) ** 2);
     const punto = ruta.getPointAt(e, tmp), dir = ruta.getTangentAt(Math.min(e, 0.995), tmp2);
     g.x = punto.x;
     g.y = punto.y;
     const crece = clamp((p - 0.75) / 0.25, 0, 1);
-    g.s = o.gs * (0.55 + 0.45 * crece * crece * (3 - 2 * crece));
+    g.s = o.gs * (est.escalaRuta + (1 - est.escalaRuta) * crece * crece * (3 - 2 * crece));
     rumbo = dir.x >= 0 ? RUMBO_DER : RUMBO_IZQ;
     const mira = Math.cos(g.rumbo) / Math.cos(RUMBO_DER); // 1 mirando a la derecha, -1 a la izquierda
     rz = clamp(Math.atan2(dir.y, Math.abs(dir.x)) * 0.5, -0.35, 0.35) * mira;
     amp = 0.6 - 0.43 * p * p; freq = 2.6 - 1.7 * p * p; flota = false;
-  } else if (f !== 'vacio') {
+  } else {
     const k = g.colocada && !reducido ? 1 - Math.exp(-dt * 3.2) : 1;
     g.x += (o.gx - g.x) * k;
     g.y += (o.gy - g.y) * k;
@@ -805,7 +826,8 @@ function actualizarBolsa(dt, o) {
   if (!bolsa.visible) { sombra.visible = false; return; }
   bolsa.scale.setScalar(o.bs);
   const alto = bm.h * o.bs;
-  if (f === 'regreso' || f === 'colgando') {
+  const colgada = f === 'colgando' || (f === 'llegada' && !est.abierta);
+  if (colgada) {
     grulla.updateMatrixWorld(true);
     const ancla = marcaGancho.getWorldPosition(tmp);
     pend.largo = o.largo;
@@ -854,10 +876,10 @@ function actualizarBolsa(dt, o) {
     }
     if (u >= 0.7) cambiarFase('nota');
   }
-  if (f !== 'regreso' && f !== 'colgando') bolsa.position.set(b.x, b.y + b.salto, 0);
+  if (!colgada) bolsa.position.set(b.x, b.y + b.salto, 0);
 
   // Sombra
-  sombra.visible = f !== 'regreso';
+  sombra.visible = !colgada;
   const altura = b.y + b.salto - o.reposoY;
   const sueloY = aMundoY(o.sueloPx);
   const ancho = bm.w * o.bs * 1.9;
@@ -966,7 +988,7 @@ function queHayDebajo(x, y) {
   ndc.set(x / med.W * 2 - 1, -(y / med.H) * 2 + 1);
   rayo.setFromCamera(ndc, camera);
   const f = est.fase;
-  if (f === 'alas' || f === 'antes') {
+  if (f === 'antes') {
     const hit = rayo.intersectObjects(mallasAlas, false)[0];
     return hit ? () => tocarAla(hit.object.userData.lado) : null;
   }
@@ -978,7 +1000,6 @@ lienzo.addEventListener('pointerdown', (e) => { const accion = queHayDebajo(e.cl
 lienzo.addEventListener('pointermove', (e) => {
   if (e.pointerType === 'mouse') lienzo.style.cursor = queHayDebajo(e.clientX, e.clientY) ? 'pointer' : '';
 });
-ui.vuela.addEventListener('click', volar);
 ui.cerrar.addEventListener('click', () => cambiarFase('leida'));
 ui.releer.addEventListener('click', () => cambiarFase('nota'));
 ui.kIzq.addEventListener('click', () => tocarAla('izq'));
@@ -1013,6 +1034,7 @@ async function iniciar() {
   const fuentes = Promise.race([document.fonts.load('400 120px "Young Serif"'), espera(2500)]).catch(() => {});
   const [fecha] = await Promise.all([fechaActual(), fuentes]);
   ajustar();
+  est.desfase = fecha.getTime() - Date.now();
   const dia = diaMadrid(fecha);
   if (PRUEBA) {
     ui.pruebaDia.add(new Option('Antes', '0'));
