@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Para Bea</title>
+<meta name="theme-color" content="#243152">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1 11 8 3l7 8-7-2z' fill='%23d0473f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --tinta: #2a2740;
+    --papel: #fbf6ec;
+    --crema: #f3ede3;
+    --rojo: #d0473f;
+    --oro: #e2c072;
+    --kraft: #c4955f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    background: #243152 linear-gradient(180deg, #3d5079 0%, #243152 55%, #151c33 100%);
+    color: var(--crema);
+    font-family: 'Figtree', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  [hidden] { display: none !important; }
+
+  #nieve, #escena, .grano { position: fixed; inset: 0; width: 100%; height: 100%; }
+  #nieve { z-index: 0; pointer-events: none; }
+  #escena { z-index: 1; display: block; touch-action: manipulation; }
+  .grano {
+    z-index: 2; pointer-events: none; opacity: .1; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .ui { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
+  .ui button, .ui select, .nota { pointer-events: auto; }
+
+  h1 {
+    position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 14px);
+    margin: 0; text-align: center;
+    font-family: 'Young Serif', Georgia, serif; font-weight: 400;
+    font-size: clamp(2.1rem, 9vw, 3.1rem); line-height: 1.1; letter-spacing: .01em;
+    color: var(--crema); text-shadow: 0 2px 14px rgba(10, 14, 35, .45);
+  }
+
+  /* Bocadillo de cómic */
+  .bocadillo {
+    position: fixed; left: 0; top: 0;
+    width: max-content; min-width: 140px; max-width: min(340px, calc(100vw - 32px));
+    padding: 12px 18px;
+    background: var(--papel); color: var(--tinta);
+    border: 2px solid var(--tinta); border-radius: 22px;
+    box-shadow: 0 5px 0 rgba(8, 12, 30, .28);
+    font-size: 1.05rem; line-height: 1.4; font-weight: 500; text-align: center;
+    transition: opacity .25s, visibility .25s;
+  }
+  .bocadillo p { margin: 0; }
+  .bocadillo p.pop { animation: pop .35s cubic-bezier(.3, 1.5, .5, 1); }
+  @keyframes pop { from { transform: scale(.9); opacity: .3; } }
+  .cola { position: fixed; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; transition: opacity .25s; }
+  .cola path { fill: var(--papel); stroke: var(--tinta); stroke-width: 2; stroke-linejoin: round; }
+  .oculto { opacity: 0; visibility: hidden; }
+
+  /* Botones */
+  .btn {
+    font: 400 1.2rem/1 'Young Serif', Georgia, serif;
+    border: 0; border-radius: 999px; padding: .85em 1.9em; min-height: 48px; cursor: pointer;
+    color: var(--papel); background: var(--rojo);
+    box-shadow: 0 4px 0 #8e2c27, 0 12px 28px rgba(5, 8, 20, .35);
+  }
+  .btn-sec { background: var(--papel); color: var(--tinta); box-shadow: 0 3px 0 rgba(42, 39, 64, .35), 0 10px 24px rgba(5, 8, 20, .25); }
+  .btn:focus-visible, select:focus-visible, .tecla:focus { outline: 3px solid var(--oro); outline-offset: 3px; }
+  .abajo {
+    position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 26px);
+    transform: translateX(-50%); white-space: nowrap;
+  }
+  .abajo:not([hidden]) { animation: entrar .6s cubic-bezier(.2, .9, .25, 1.25) backwards; }
+  @keyframes entrar { from { opacity: 0; transform: translate(-50%, 28px) scale(.92); } }
+
+  /* Nota */
+  .nota {
+    position: absolute; left: 50%; bottom: 40%;
+    width: min(360px, calc(100vw - 32px)); overflow: auto;
+    padding: 22px 22px 18px;
+    background: var(--papel); color: var(--tinta);
+    border-radius: 6px;
+    box-shadow: 0 18px 40px rgba(5, 8, 20, .45), 0 2px 0 rgba(0, 0, 0, .06);
+    transform: translateX(-50%) rotate(-1.6deg); transform-origin: 50% 100%;
+  }
+  .nota:not([hidden]) { animation: nota-entra .5s cubic-bezier(.2, .9, .3, 1.15) backwards; }
+  @keyframes nota-entra { from { opacity: 0; transform: translate(-50%, 20px) rotate(-5deg) scale(.9); } }
+  .nota-fecha { margin: 0 0 .5rem; font-family: 'Young Serif', Georgia, serif; font-size: 1.3rem; color: #a93b34; }
+  .nota-texto { margin: 0 0 1.1rem; font-size: 1.06rem; line-height: 1.55; white-space: pre-line; }
+  .etiqueta {
+    position: relative; display: inline-block; margin: 0 0 1.1rem;
+    padding: .5em 1em .5em 1.7em;
+    background: var(--kraft); color: #3b2614; font-weight: 600;
+    clip-path: polygon(12px 0, 100% 0, 100% 100%, 12px 100%, 0 50%);
+    transform: rotate(1.8deg);
+  }
+  .etiqueta::before {
+    content: ''; position: absolute; left: 11px; top: 50%; width: 7px; height: 7px;
+    border-radius: 50%; background: var(--papel); transform: translateY(-50%);
+  }
+  .nota .btn { display: block; margin-left: auto; font-size: 1rem; padding: .7em 1.5em; min-height: 44px; }
+
+  /* Accesos de teclado: solo visibles con foco */
+  .teclas {
+    position: absolute; left: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
+    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  }
+  .tecla {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+    font: 600 .95rem 'Figtree', sans-serif; padding: .6em 1em; border-radius: 999px;
+    border: 2px solid var(--tinta); background: var(--papel); color: var(--tinta); cursor: pointer;
+  }
+  .tecla:focus { position: static; width: auto; height: auto; clip-path: none; }
+
+  /* Selector de prueba (?prueba) */
+  .prueba { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 10px); left: 10px; opacity: .55; }
+  .prueba select { width: 74px; }
+  .prueba:hover, .prueba:focus-within { opacity: 1; }
+  .prueba select {
+    font: 500 .75rem 'Figtree', sans-serif; color: var(--crema);
+    background: rgba(251, 246, 236, .12); border: 1px solid rgba(243, 237, 227, .35);
+    border-radius: 6px; padding: 3px 4px;
+  }
+  .prueba option { color: #222; }
+
+  #sonda { position: absolute; visibility: hidden; padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+  <canvas id="nieve" aria-hidden="true"></canvas>
+  <canvas id="escena" role="img" aria-label="Una grulla de papel roja flotando en el cielo"></canvas>
+  <div class="grano" aria-hidden="true"></div>
+
+  <main class="ui">
+    <h1 id="titulo">Para Bea</h1>
+
+    <div id="bocadillo" class="bocadillo oculto" aria-live="polite"><p id="bocadillo-texto"></p></div>
+    <svg id="cola" class="cola oculto" aria-hidden="true"><path id="cola-path" d=""/></svg>
+
+    <div class="teclas">
+      <button id="k-izq" class="tecla" hidden>Tocar ala izquierda</button>
+      <button id="k-der" class="tecla" hidden>Tocar ala derecha</button>
+      <button id="k-grulla" class="tecla" hidden>Tocar la grulla</button>
+      <button id="k-bolsa" class="tecla" hidden>Abrir la bolsita</button>
+    </div>
+
+    <button id="vuela" class="btn abajo" hidden>¡Vuela!</button>
+    <button id="releer" class="btn btn-sec abajo" hidden>Volver a leer la nota</button>
+
+    <section id="nota" class="nota" aria-labelledby="nota-fecha" hidden>
+      <p id="nota-fecha" class="nota-fecha"></p>
+      <p id="nota-texto" class="nota-texto"></p>
+      <p class="etiqueta"><span id="nota-bolsa"></span></p>
+      <button id="cerrar" class="btn btn-sec">Cerrar</button>
+    </section>
+
+    <label class="prueba" hidden id="prueba">
+      <select id="prueba-dia" aria-label="Día de prueba"></select>
+    </label>
+    <div id="sonda"></div>
+  </main>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ==========================================================================
+   CONTENIDO: edita aquí los textos de cada día (1–24).
+   - alaIzquierda / alaDerecha: lo que dice cada ala al tocarla.
+   - nota: el mensaje de la nota que sale de la bolsita.
+   - bolsa: la instrucción de la etiqueta kraft (qué bolsita abrir).
+   Todos los textos de ahora son DE EJEMPLO.
+   ========================================================================== */
+const CONTENIDO = {
+  1:  { alaIzquierda: 'Ejemplo: ¡Hola, Bea! Hoy empieza la cuenta atrás.',      alaDerecha: 'Ejemplo: Cada día de diciembre vendré a verte.',      nota: 'Ejemplo de nota del día 1. Aquí irá el mensaje de verdad.',  bolsa: 'Abre la bolsita 1' },
+  2:  { alaIzquierda: 'Ejemplo: Buenos días, dormilona.',                         alaDerecha: 'Ejemplo: Hoy traigo algo pequeñito.',                 nota: 'Ejemplo de nota del día 2.',                                  bolsa: 'Abre la bolsita 2' },
+  3:  { alaIzquierda: 'Ejemplo: Tercer día y ya te echo de menos.',               alaDerecha: 'Ejemplo: Toca la otra ala, que tiene más.',          nota: 'Ejemplo de nota del día 3.',                                  bolsa: 'Abre la bolsita 3' },
+  4:  { alaIzquierda: 'Ejemplo: Hoy hace frío ahí fuera.',                        alaDerecha: 'Ejemplo: Esto es para que entres en calor.',          nota: 'Ejemplo de nota del día 4.',                                  bolsa: 'Abre la bolsita 4' },
+  5:  { alaIzquierda: 'Ejemplo: Ya llevamos cinco.',                              alaDerecha: 'Ejemplo: Y me quedan muchas cosas por decirte.',      nota: 'Ejemplo de nota del día 5.',                                  bolsa: 'Abre la bolsita 5' },
+  6:  { alaIzquierda: 'Ejemplo: Feliz puente.',                                   alaDerecha: 'Ejemplo: Hoy toca algo para no hacer nada.',          nota: 'Ejemplo de nota del día 6.',                                  bolsa: 'Abre la bolsita 6' },
+  7:  { alaIzquierda: 'Ejemplo: Una semana entera de grullas.',                   alaDerecha: 'Ejemplo: ¿Ya tienes una favorita?',                   nota: 'Ejemplo de nota del día 7.',                                  bolsa: 'Abre la bolsita 7' },
+  8:  { alaIzquierda: 'Ejemplo: Hoy vengo con prisa.',                            alaDerecha: 'Ejemplo: Pero nunca sin algo para ti.',               nota: 'Ejemplo de nota del día 8.',                                  bolsa: 'Abre la bolsita 8' },
+  9:  { alaIzquierda: 'Ejemplo: Me he levantado pensando en ti.',                 alaDerecha: 'Ejemplo: Como casi siempre.',                         nota: 'Ejemplo de nota del día 9.',                                  bolsa: 'Abre la bolsita 9' },
+  10: { alaIzquierda: 'Ejemplo: Día diez, doble dígito.',                         alaDerecha: 'Ejemplo: Esto se pone serio.',                        nota: 'Ejemplo de nota del día 10.',                                 bolsa: 'Abre la bolsita 10' },
+  11: { alaIzquierda: 'Ejemplo: Hoy un recuerdo bonito.',                         alaDerecha: 'Ejemplo: Ya sabrás cuál cuando la abras.',            nota: 'Ejemplo de nota del día 11.',                                 bolsa: 'Abre la bolsita 11' },
+  12: { alaIzquierda: 'Ejemplo: Mitad de camino.',                                alaDerecha: 'Ejemplo: Lo mejor está por llegar.',                  nota: 'Ejemplo de nota del día 12.',                                 bolsa: 'Abre la bolsita 12' },
+  13: { alaIzquierda: 'Ejemplo: El trece no da mala suerte.',                     alaDerecha: 'Ejemplo: Hoy da una sorpresa.',                       nota: 'Ejemplo de nota del día 13.',                                 bolsa: 'Abre la bolsita 13' },
+  14: { alaIzquierda: 'Ejemplo: Hoy he volado más lejos.',                        alaDerecha: 'Ejemplo: Ha merecido la pena.',                       nota: 'Ejemplo de nota del día 14.',                                 bolsa: 'Abre la bolsita 14' },
+  15: { alaIzquierda: 'Ejemplo: Quince días de diciembre.',                       alaDerecha: 'Ejemplo: Y quince sonrisas, espero.',                 nota: 'Ejemplo de nota del día 15.',                                 bolsa: 'Abre la bolsita 15' },
+  16: { alaIzquierda: 'Ejemplo: Hoy, algo para compartir.',                       alaDerecha: 'Ejemplo: Conmigo, a ser posible.',                    nota: 'Ejemplo de nota del día 16.',                                 bolsa: 'Abre la bolsita 16' },
+  17: { alaIzquierda: 'Ejemplo: ¿Sabes lo que me gusta de ti?',                   alaDerecha: 'Ejemplo: Está escrito en la nota.',                   nota: 'Ejemplo de nota del día 17.',                                 bolsa: 'Abre la bolsita 17' },
+  18: { alaIzquierda: 'Ejemplo: Una semana para Nochebuena.',                     alaDerecha: 'Ejemplo: Ya huele a turrón.',                         nota: 'Ejemplo de nota del día 18.',                                 bolsa: 'Abre la bolsita 18' },
+  19: { alaIzquierda: 'Ejemplo: Hoy toca mimo.',                                  alaDerecha: 'Ejemplo: El de verdad te lo doy luego.',              nota: 'Ejemplo de nota del día 19.',                                 bolsa: 'Abre la bolsita 19' },
+  20: { alaIzquierda: 'Ejemplo: Veinte grullas ya.',                              alaDerecha: 'Ejemplo: Casi tengo una bandada.',                    nota: 'Ejemplo de nota del día 20.',                                 bolsa: 'Abre la bolsita 20' },
+  21: { alaIzquierda: 'Ejemplo: Hoy empieza el invierno.',                        alaDerecha: 'Ejemplo: Abrígate bien.',                             nota: 'Ejemplo de nota del día 21.',                                 bolsa: 'Abre la bolsita 21' },
+  22: { alaIzquierda: 'Ejemplo: Día de la lotería.',                              alaDerecha: 'Ejemplo: A mí ya me tocó contigo.',                   nota: 'Ejemplo de nota del día 22.',                                 bolsa: 'Abre la bolsita 22' },
+  23: { alaIzquierda: 'Ejemplo: Mañana es el último día.',                        alaDerecha: 'Ejemplo: Hoy, una pista de lo que viene.',            nota: 'Ejemplo de nota del día 23.',                                 bolsa: 'Abre la bolsita 23' },
+  24: { alaIzquierda: 'Ejemplo: ¡Feliz Nochebuena, Bea!',                         alaDerecha: 'Ejemplo: Hoy la bolsita es especial.',                nota: 'Ejemplo de nota del día 24. La última, la más bonita.',       bolsa: 'Abre la bolsita roja' },
+};
+
+const COLOR = { rojo: '#d0473f', blancoRoto: '#f3ede3', kraft: '#c4955f', rojoBolsa: '#a93b34', oro: '#e2c072' };
+const TEXTO = {
+  antes: 'La primera bolsita llega el 1 de diciembre',
+  alas: 'Toca mis dos alas',
+  traido: 'Te he traído esto. Tócame',
+  bolsa: 'Toca la bolsita',
+};
+const PRUEBA = new URLSearchParams(location.search).has('prueba');
+const FASES_CON_BOLSA = new Set(['regreso', 'colgando', 'cayendo', 'suelo', 'abriendo', 'nota', 'leida']);
+const FASES_EN_VUELO = new Set(['despegue', 'vacio', 'regreso']);
+const FOV = 30, DIST = 20;
+const BASE_ALA = 0.14;         // ángulo de las alas abiertas (rad)
+const DUR_DESPEGUE = 1.15, DUR_VACIO = 0.8;
+const BW = 1, BH = 1.2, BD = 0.55, SOLAPA_H = 0.3, SOLAPA_ABIERTA = Math.PI - 0.45;
+
+const mqReducido = matchMedia('(prefers-reduced-motion: reduce)');
+let reducido = mqReducido.matches;
+mqReducido.addEventListener('change', (e) => { reducido = e.matches; ajustar(); });
+
+const $ = (id) => document.getElementById(id);
+const ui = {
+  titulo: $('titulo'), boc: $('bocadillo'), bocTexto: $('bocadillo-texto'), cola: $('cola'), colaPath: $('cola-path'),
+  vuela: $('vuela'), releer: $('releer'), nota: $('nota'), notaFecha: $('nota-fecha'), notaTexto: $('nota-texto'),
+  notaBolsa: $('nota-bolsa'), cerrar: $('cerrar'), prueba: $('prueba'), pruebaDia: $('prueba-dia'),
+  kIzq: $('k-izq'), kDer: $('k-der'), kGrulla: $('k-grulla'), kBolsa: $('k-bolsa'), sonda: $('sonda'),
+};
+const clamp = THREE.MathUtils.clamp;
+
+/* ---------- Escena ---------- */
+const lienzo = $('escena');
+const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x000000, 0);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(FOV, 1, 1, 100);
+camera.position.set(0, 0, DIST);
+
+scene.add(new THREE.HemisphereLight(0xe4e9ff, 0x3b2d2a, 1.6));
+const sol = new THREE.DirectionalLight(0xfff0dc, 2.4);
+sol.position.set(-4, 8, 10);
+scene.add(sol);
+const contra = new THREE.DirectionalLight(0x9db2ff, 0.7);
+contra.position.set(6, -3, -4);
+scene.add(contra);
+
+function geometria(tris) {
+  const pos = [];
+  for (const [a, b, c] of tris) pos.push(...a, ...b, ...c);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  return g;
+}
+// Ordena cada triángulo para que su cara delantera mire hacia arriba (+y).
+function haciaArriba([a, b, c]) {
+  const ab = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+  const ac = new THREE.Vector3(c[0] - a[0], c[1] - a[1], c[2] - a[2]);
+  return ab.cross(ac).y >= 0 ? [a, b, c] : [a, c, b];
+}
+
+/* ---------- Grulla ---------- */
+const grulla = new THREE.Group();
+const grullaOrient = new THREE.Group();
+grullaOrient.rotation.set(0.72, -1.0, 0); // tres cuartos desde delante y un poco desde arriba
+grulla.add(grullaOrient);
+scene.add(grulla);
+
+const matPapel = new THREE.MeshStandardMaterial({ color: COLOR.rojo, flatShading: true, side: THREE.DoubleSide, roughness: 0.85 });
+{
+  const F = [0.42, 0.02, 0], B = [-0.42, 0.02, 0], K = [0, -0.3, 0], L = [0, 0.06, 0.2], R = [0, 0.06, -0.2];
+  const n1 = [0.28, 0.02, 0.05], n2 = [0.28, 0.02, -0.05], n3 = [0.46, -0.16, 0], N = [0.93, 0.86, 0];
+  const c1 = [0.86, 0.76, 0.035], c2 = [0.86, 0.76, -0.035], c3 = [0.95, 0.88, 0], C = [1.18, 0.7, 0];
+  const t1 = [-0.28, 0.02, 0.05], t2 = [-0.28, 0.02, -0.05], t3 = [-0.46, -0.16, 0], T = [-1.02, 0.9, 0];
+  const cuerpo = new THREE.Mesh(geometria([
+    [F, L, K], [F, K, R], [B, K, L], [B, R, K], [F, L, B], [F, B, R],
+    [n1, n3, N], [n2, N, n3], [n1, N, n2],
+    [c1, c3, C], [c2, C, c3], [c1, C, c2],
+    [t1, t3, T], [t2, T, t3], [t1, T, t2],
+  ]), matPapel);
+  grullaOrient.add(cuerpo);
+}
+function crearAla(lado, sgn) {
+  const Rf = [0.4, 0, 0], Rb = [-0.36, 0, 0], M = [0.1, 0.06, 0.62 * sgn], P = [-0.22, 0, 1.25 * sgn];
+  const geo = geometria([[Rf, M, Rb], [Rf, P, M], [M, P, Rb]].map(haciaArriba));
+  const sup = new THREE.MeshStandardMaterial({ color: COLOR.rojo, flatShading: true, side: THREE.FrontSide, roughness: 0.85, emissive: COLOR.oro, emissiveIntensity: 0 });
+  const inf = new THREE.MeshStandardMaterial({ color: COLOR.blancoRoto, flatShading: true, side: THREE.BackSide, roughness: 0.9, emissive: COLOR.oro, emissiveIntensity: 0 });
+  const mSup = new THREE.Mesh(geo, sup), mInf = new THREE.Mesh(geo, inf);
+  mSup.userData.lado = mInf.userData.lado = lado;
+  const borde = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: COLOR.oro }));
+  borde.visible = false;
+  const pivote = new THREE.Group();
+  pivote.position.set(0, 0.05, 0.03 * sgn);
+  pivote.add(mSup, mInf, borde);
+  grullaOrient.add(pivote);
+  return { pivote, sup, inf, borde, sgn, mallas: [mSup, mInf] };
+}
+const alas = { izq: crearAla('izq', 1), der: crearAla('der', -1) };
+const mallasAlas = [...alas.izq.mallas, ...alas.der.mallas];
+const mallasGrulla = [grullaOrient.children[0], ...mallasAlas];
+const marcaCabeza = new THREE.Object3D(); marcaCabeza.position.set(1.18, 0.7, 0);
+const marcaGancho = new THREE.Object3D(); marcaGancho.position.set(0, -0.3, 0);
+grullaOrient.add(marcaCabeza, marcaGancho);
+
+function ponerAlas(izq, der) {
+  alas.izq.pivote.rotation.x = -izq;
+  alas.der.pivote.rotation.x = der;
+}
+function marcarAla(lado, si) {
+  const a = alas[lado];
+  a.borde.visible = si;
+  a.sup.emissiveIntensity = si ? 0.07 : 0;
+  a.inf.emissiveIntensity = si ? 0.06 : 0;
+}
+
+/* ---------- Bolsita ---------- */
+const bolsa = new THREE.Group();
+const bolsaOrient = new THREE.Group();
+bolsaOrient.rotation.set(0.28, -0.38, 0);
+bolsa.add(bolsaOrient);
+scene.add(bolsa);
+
+const matLado = new THREE.MeshStandardMaterial({ color: COLOR.kraft, roughness: 1 });
+const matTapa = new THREE.MeshStandardMaterial({ color: '#b98a55', roughness: 1 });
+const matFrente = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 });
+const matSolapa = new THREE.MeshStandardMaterial({ color: '#cfa06a', roughness: 1, side: THREE.DoubleSide });
+const cuerpoBolsa = new THREE.Mesh(new THREE.BoxGeometry(BW, BH, BD), [matLado, matLado, matTapa, matLado, matFrente, matLado]);
+bolsaOrient.add(cuerpoBolsa);
+
+const solapa = new THREE.Group();
+solapa.position.set(0, BH / 2, BD / 2);
+const solapaMalla = new THREE.Mesh(new THREE.BoxGeometry(BW * 1.0, SOLAPA_H, 0.014).translate(0, -SOLAPA_H / 2, 0.008), matSolapa);
+solapa.add(solapaMalla);
+bolsaOrient.add(solapa);
+
+const pinza = new THREE.Group();
+const PINZA_POS = new THREE.Vector3(0, BH / 2 + 0.02, BD / 2 - 0.02);
+{
+  const madera = new THREE.MeshStandardMaterial({ color: '#d8b384', roughness: 0.75 });
+  const madera2 = new THREE.MeshStandardMaterial({ color: '#c49a68', roughness: 0.75 });
+  const delante = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.44, 0.045), madera);
+  delante.position.set(0, 0, 0.065);
+  const detras = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.44, 0.045), madera2);
+  detras.position.set(0, 0, -0.04);
+  const muelle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.13, 12), new THREE.MeshStandardMaterial({ color: '#8d939c', metalness: 0.6, roughness: 0.4 }));
+  muelle.rotation.x = Math.PI / 2;
+  muelle.position.set(0, 0.06, 0.012);
+  pinza.add(delante, detras, muelle);
+}
+pinza.position.copy(PINZA_POS);
+bolsaOrient.add(pinza);
+const marcaAncla = new THREE.Object3D();
+marcaAncla.position.set(0, BH / 2 + 0.24, BD / 2);
+bolsaOrient.add(marcaAncla);
+const mallasBolsa = [cuerpoBolsa, solapaMalla, ...pinza.children];
+
+function texturaBolsa(dia) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = Math.round(512 * BH / BW);
+  const x = c.getContext('2d');
+  const roja = dia === 24;
+  x.fillStyle = roja ? COLOR.rojoBolsa : COLOR.kraft;
+  x.fillRect(0, 0, c.width, c.height);
+  for (let i = 0; i < 1100; i++) { // fibras de papel
+    x.fillStyle = roja ? `rgba(50,8,8,${Math.random() * 0.08})` : `rgba(80,50,22,${Math.random() * 0.08})`;
+    x.fillRect(Math.random() * c.width, Math.random() * c.height, 2 + Math.random() * 16, 1);
+  }
+  const sombra = x.createLinearGradient(0, 0, 0, c.height);
+  sombra.addColorStop(0, 'rgba(0,0,0,0)');
+  sombra.addColorStop(1, 'rgba(0,0,0,.12)');
+  x.fillStyle = sombra;
+  x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = roja ? COLOR.oro : '#4a2f1a';
+  x.font = `${Math.round(c.height * 0.42)}px "Young Serif", Georgia, serif`;
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.fillText(String(dia), c.width / 2, c.height * 0.63);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+function pintarBolsa(dia) {
+  const roja = dia === 24;
+  matLado.color.set(roja ? COLOR.rojoBolsa : COLOR.kraft);
+  matSolapa.color.set(roja ? '#b4453d' : '#cfa06a');
+  matTapa.color.set(roja ? '#93322c' : '#b98a55');
+  if (matFrente.map) matFrente.map.dispose();
+  matFrente.map = texturaBolsa(dia);
+  matFrente.needsUpdate = true;
+}
+
+/* Sombra suave en el suelo */
+const sombra = (() => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(8,10,24,.75)');
+  g.addColorStop(1, 'rgba(8,10,24,0)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
+  m.visible = false;
+  scene.add(m);
+  return m;
+})();
+
+/* Hilo */
+const hilo = new THREE.Line(
+  new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3)),
+  new THREE.LineBasicMaterial({ color: COLOR.blancoRoto, transparent: true, opacity: 0.9 })
+);
+hilo.visible = false;
+hilo.frustumCulled = false; // sus puntos cambian en cada frame
+scene.add(hilo);
+
+/* Confeti */
+const confeti = [];
+const geoConfeti = new THREE.PlaneGeometry(1, 0.6);
+const COLORES_CONFETI = [COLOR.rojo, COLOR.oro, COLOR.blancoRoto, COLOR.kraft, '#8fa8d6'];
+function lanzarConfeti(origen, u) {
+  for (let i = 0; i < 38; i++) {
+    const m = new THREE.Mesh(geoConfeti, new THREE.MeshBasicMaterial({
+      color: COLORES_CONFETI[i % COLORES_CONFETI.length], side: THREE.DoubleSide, transparent: true,
+    }));
+    m.scale.setScalar(u * 0.075 * (0.7 + Math.random() * 0.6));
+    m.position.copy(origen);
+    m.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+    scene.add(m);
+    confeti.push({
+      m, vida: 0, max: 1.5 + Math.random() * 0.7, u,
+      v: new THREE.Vector3((Math.random() - 0.5) * 2.8 * u, (2.6 + Math.random() * 2.4) * u, (Math.random() - 0.2) * u),
+      w: new THREE.Vector3((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14),
+    });
+  }
+}
+function actualizarConfeti(dt) {
+  for (let i = confeti.length - 1; i >= 0; i--) {
+    const p = confeti[i];
+    p.vida += dt;
+    p.v.y -= p.u * 7 * dt;
+    p.v.multiplyScalar(Math.exp(-dt * 1.4));
+    p.m.position.addScaledVector(p.v, dt);
+    p.m.rotation.x += p.w.x * dt; p.m.rotation.y += p.w.y * dt; p.m.rotation.z += p.w.z * dt;
+    p.m.material.opacity = clamp((p.max - p.vida) / 0.5, 0, 1);
+    if (p.vida >= p.max) quitarConfeti(i);
+  }
+}
+function quitarConfeti(i) {
+  const p = confeti[i];
+  scene.remove(p.m);
+  p.m.material.dispose();
+  confeti.splice(i, 1);
+}
+
+/* ---------- Medidas de los modelos (a escala 1) ---------- */
+const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
+const cm = (() => {
+  ponerAlas(BASE_ALA, BASE_ALA);
+  grulla.updateMatrixWorld(true);
+  const caja = new THREE.Box3().setFromObject(grulla, true);
+  const c = caja.getCenter(new THREE.Vector3()), s = caja.getSize(new THREE.Vector3());
+  const g = marcaGancho.getWorldPosition(new THREE.Vector3());
+  return { w: s.x, h: s.y, cx: c.x, cy: c.y, gx: g.x, gy: g.y };
+})();
+const bm = (() => {
+  bolsa.updateMatrixWorld(true);
+  const caja = new THREE.Box3().setFromObject(cuerpoBolsa, true);
+  const a = marcaAncla.getWorldPosition(new THREE.Vector3());
+  return { w: caja.max.x - caja.min.x, h: caja.max.y - caja.min.y, abajo: caja.min.y, ancla: a };
+})();
+bolsa.visible = false;
+
+/* ---------- Estado ---------- */
+const est = { dia: null, fase: 'cargando', tf: 0, tocadas: { izq: false, der: false }, bocVisible: false, confeti: false };
+const g = { x: 0, y: 0, s: 0.01, colocada: false, faseAla: 0, x0: 0, y0: 0, acel: 0, subida: 0, xIni: 0, yIni: 0 };
+const aleteo = { izq: -10, der: -10 };
+const b = { x: 0, y: 0, vx: 0, vy: 0, rz: 0, salto: 0 };
+const pend = { a: 0, w: 0, px: null, vx: null, ax: 0, largo: 1 };
+const vueloPinza = { activa: false, t: 0, v: new THREE.Vector3(), w: 0 };
+const med = { W: innerWidth, H: innerHeight, ppu: 1, tituloAbajo: 70, bocTop: 80, bocW: 200, bocH: 50, seguro: 0 };
+let reloj = 0;
+
+const aMundoX = (px) => (px - med.W / 2) / med.ppu;
+const aMundoY = (py) => (med.H / 2 - py) / med.ppu;
+function aPantalla(v) {
+  const p = tmp2.copy(v).project(camera);
+  return { x: (p.x + 1) / 2 * med.W, y: (1 - p.y) / 2 * med.H };
+}
+
+/* Dónde debe estar cada cosa según la fase y el tamaño de pantalla */
+function objetivo() {
+  const { W, H, ppu } = med;
+  const arriba = med.bocTop + Math.max(med.bocH, 48) + 22;
+  const abajo = H - 108 - med.seguro;
+  const rh = Math.max(abajo - arriba, 160);
+  const o = { sueloPx: abajo };
+  let sp, cy;
+  if (!FASES_CON_BOLSA.has(est.fase)) {
+    sp = Math.min(rh * 0.8 / cm.h, (W - 32) * 0.84 / cm.w, 520 / cm.h);
+    cy = arriba + rh / 2;
+  } else {
+    sp = Math.min(rh * 0.42 / cm.h, (W - 32) * 0.62 / cm.w, 300 / cm.h);
+    cy = arriba + rh * 0.21 + 6;
+    if (est.fase === 'nota') cy = -cm.h * sp; // se aparta mientras se lee la nota
+  }
+  o.gs = sp / ppu;
+  o.gx = aMundoX(W / 2) - cm.cx * o.gs;
+  o.gy = aMundoY(cy) - cm.cy * o.gs;
+  const bh = clamp(rh * 0.25, 64, 150);
+  o.bs = bh / ppu / bm.h;
+  o.reposoY = aMundoY(abajo) - bm.abajo * o.bs;
+  const ganchoY = o.gy + cm.gy * o.gs;
+  const anclaY = aMundoY(arriba + rh * 0.8) + (bm.ancla.y - bm.abajo) * o.bs;
+  o.largo = Math.max(ganchoY - anclaY, bm.h * o.bs * 0.35);
+  return o;
+}
+
+/* ---------- Bocadillo ---------- */
+function medirBocadillo() {
+  med.bocW = ui.boc.offsetWidth;
+  med.bocH = ui.boc.offsetHeight;
+}
+function decir(texto) {
+  est.bocVisible = true;
+  if (ui.bocTexto.textContent !== texto) {
+    ui.bocTexto.textContent = texto;
+    medirBocadillo();
+  }
+  ui.bocTexto.classList.remove('pop');
+  void ui.bocTexto.offsetWidth;
+  ui.bocTexto.classList.add('pop');
+}
+function callar() { est.bocVisible = false; }
+
+function actualizarBocadillo() {
+  const ver = est.bocVisible && grulla.visible && !FASES_EN_VUELO.has(est.fase);
+  ui.boc.classList.toggle('oculto', !ver);
+  if (!ver) { ui.cola.classList.add('oculto'); return; }
+  const cabeza = aPantalla(marcaCabeza.getWorldPosition(tmp));
+  const { W } = med, bw = med.bocW, bh = med.bocH;
+  const left = clamp(cabeza.x - bw * 0.6, 16, Math.max(16, W - 16 - bw));
+  const top = med.bocTop;
+  ui.boc.style.transform = `translate(${left.toFixed(1)}px, ${top.toFixed(1)}px)`;
+  // El piquito sale del borde inferior y apunta a la cabeza
+  const by = top + bh - 2;
+  const bx = clamp(cabeza.x, left + 30, left + bw - 30);
+  const dx = cabeza.x - bx, dy = cabeza.y - 8 - by;
+  const dist = Math.hypot(dx, dy);
+  if (dy < 6 || dist < 1) { ui.cola.classList.add('oculto'); return; }
+  const largo = clamp(dist - 12, 14, 56);
+  const px = bx + dx / dist * largo, py = by + dy / dist * largo;
+  ui.colaPath.setAttribute('d', `M${(bx - 11).toFixed(1)} ${by.toFixed(1)} L${px.toFixed(1)} ${py.toFixed(1)} L${(bx + 11).toFixed(1)} ${by.toFixed(1)}`);
+  ui.cola.classList.remove('oculto');
+}
+
+/* ---------- Fases ---------- */
+function cambiarFase(f) {
+  est.fase = f;
+  est.tf = 0;
+  ui.vuela.hidden = !(f === 'alas' && est.tocadas.izq && est.tocadas.der);
+  ui.releer.hidden = f !== 'leida';
+  ui.nota.hidden = f !== 'nota';
+  ui.kIzq.hidden = ui.kDer.hidden = f !== 'alas';
+  ui.kGrulla.hidden = f !== 'colgando';
+  ui.kBolsa.hidden = f !== 'suelo';
+  if (f === 'antes') decir(TEXTO.antes);
+  else if (f === 'alas') decir(TEXTO.alas);
+  else if (f === 'colgando') decir(TEXTO.traido);
+  else if (f === 'suelo') decir(TEXTO.bolsa);
+  else callar();
+  if (f === 'nota') {
+    const c = CONTENIDO[est.dia];
+    ui.notaFecha.textContent = `${est.dia} de diciembre`;
+    ui.notaTexto.textContent = c.nota;
+    ui.notaBolsa.textContent = c.bolsa;
+    colocarNota(objetivo());
+    ui.cerrar.focus({ preventScroll: true });
+  }
+  if (f === 'leida') ui.releer.focus({ preventScroll: true });
+  if (usaTeclado && f === 'colgando') ui.kGrulla.focus();
+  if (usaTeclado && f === 'suelo') ui.kBolsa.focus();
+  if (f === 'leida' && reducido) g.colocada = false;
+}
+
+function iniciarDia(dia) {
+  est.dia = dia;
+  est.tocadas = { izq: false, der: false };
+  est.confeti = false;
+  marcarAla('izq', false);
+  marcarAla('der', false);
+  aleteo.izq = aleteo.der = -10;
+  bolsa.visible = hilo.visible = sombra.visible = false;
+  restaurarPinza();
+  solapa.rotation.x = 0;
+  while (confeti.length) quitarConfeti(confeti.length - 1);
+  if (dia > 0) pintarBolsa(dia);
+  grulla.visible = true;
+  grulla.rotation.set(0, 0, 0);
+  g.colocada = false;
+  cambiarFase(dia === 0 ? 'antes' : 'alas');
+}
+
+function tocarAla(lado) {
+  if (est.fase !== 'alas') return;
+  est.tocadas[lado] = true;
+  marcarAla(lado, true);
+  aleteo[lado] = reloj;
+  const c = CONTENIDO[est.dia];
+  decir(lado === 'izq' ? c.alaIzquierda : c.alaDerecha);
+  if (est.tocadas.izq && est.tocadas.der && ui.vuela.hidden) ui.vuela.hidden = false;
+}
+
+function volar() {
+  if (est.fase !== 'alas') return;
+  g.x0 = g.x;
+  g.y0 = g.y;
+  const xFin = med.W / 2 / med.ppu + cm.w * g.s;
+  g.acel = (xFin - g.x0) / DUR_DESPEGUE ** 2;
+  g.subida = 0.16 * med.H / med.ppu / DUR_DESPEGUE ** 2;
+  if (reducido) {
+    grulla.visible = false;
+    cambiarFase('vacio');
+  } else {
+    cambiarFase('despegue');
+  }
+}
+
+function empezarRegreso() {
+  cambiarFase('regreso');
+  const o = objetivo();
+  g.s = o.gs;
+  g.xIni = -med.W / 2 / med.ppu - cm.w * g.s - bm.w * o.bs;
+  g.yIni = o.gy + 0.1 * med.H / med.ppu;
+  Object.assign(pend, { a: reducido ? 0 : -0.35, w: 0, px: null, vx: null, ax: 0 });
+  grulla.visible = true;
+  bolsa.visible = true;
+}
+const durRegreso = () => (reducido ? 0.001 : 1.9);
+
+function soltar() {
+  if (est.fase !== 'colgando') return;
+  b.x = bolsa.position.x;
+  b.y = bolsa.position.y;
+  b.vx = pend.w * pend.largo * Math.cos(pend.a);
+  b.vy = pend.w * pend.largo * Math.sin(pend.a);
+  b.rz = pend.a;
+  hilo.visible = false;
+  aleteo.izq = aleteo.der = reloj;
+  if (reducido) {
+    b.y = objetivo().reposoY;
+    b.rz = 0;
+    cambiarFase('suelo');
+  } else {
+    cambiarFase('cayendo');
+  }
+}
+
+function abrir() {
+  if (est.fase !== 'suelo') return;
+  matTapa.color.set(est.dia === 24 ? '#4a1b18' : '#3b2a1c'); // se ve el interior
+  if (reducido) {
+    pinza.visible = false;
+    solapa.rotation.x = -SOLAPA_ABIERTA;
+    cambiarFase('nota');
+  } else {
+    cambiarFase('abriendo');
+  }
+}
+
+function soltarPinza() {
+  scene.attach(pinza);
+  const u = bm.h * bolsa.scale.x, dir = Math.random() < 0.5 ? -1 : 1;
+  vueloPinza.activa = true;
+  vueloPinza.t = 0;
+  vueloPinza.v.set(dir * u * (1.3 + Math.random() * 0.6), u * (3.6 + Math.random() * 0.8), u * 0.8);
+  vueloPinza.w = -dir * (8 + Math.random() * 4);
+}
+function restaurarPinza() {
+  vueloPinza.activa = false;
+  bolsaOrient.add(pinza);
+  pinza.position.copy(PINZA_POS);
+  pinza.rotation.set(0, 0, 0);
+  pinza.scale.setScalar(1);
+  pinza.visible = true;
+}
+
+/* ---------- Animación ---------- */
+const easeOutBack = (p) => { const c1 = 1.4, c3 = c1 + 1; return 1 + c3 * (p - 1) ** 3 + c1 * (p - 1) ** 2; };
+
+function actualizarFase() {
+  const f = est.fase;
+  if (f === 'despegue' && est.tf >= DUR_DESPEGUE) { grulla.visible = false; cambiarFase('vacio'); }
+  else if (f === 'vacio' && est.tf >= DUR_VACIO) empezarRegreso();
+  else if (f === 'regreso' && est.tf >= durRegreso()) cambiarFase('colgando');
+}
+
+function actualizarGrulla(dt, t, o) {
+  const f = est.fase;
+  let rz = 0, amp = 0.17, freq = 0.9, base = BASE_ALA, flota = true;
+  if (f === 'despegue') {
+    const u = est.tf;
+    g.x = g.x0 + u * u * g.acel;
+    g.y = g.y0 + u * u * g.subida;
+    rz = Math.min(u * 0.5, 0.28); amp = 0.85; freq = 3.4; base = 0.12; flota = false;
+  } else if (f === 'regreso') {
+    const p = Math.min(est.tf / durRegreso(), 1), e = 1 - (1 - p) ** 3;
+    g.s = o.gs;
+    g.x = g.xIni + (o.gx - g.xIni) * e;
+    g.y = g.yIni + (o.gy - g.yIni) * e + Math.sin(e * Math.PI) * 0.05 * med.H / med.ppu;
+    rz = 0.22 * (1 - e); amp = 0.7 - 0.5 * e; freq = 3 - 2.1 * e; flota = false;
+  } else if (f !== 'vacio') {
+    const k = g.colocada && !reducido ? 1 - Math.exp(-dt * 3.2) : 1;
+    g.x += (o.gx - g.x) * k;
+    g.y += (o.gy - g.y) * k;
+    g.s += (o.gs - g.s) * k;
+    g.colocada = true;
+    if (f === 'nota') { amp = 0.55; freq = 2.6; }
+  }
+  if (reducido) { amp = 0; flota = false; }
+  g.faseAla += 2 * Math.PI * freq * dt;
+  const bob = flota ? Math.sin(t * 1.15) * 0.035 * cm.h * g.s : 0;
+  grulla.position.set(g.x, g.y + bob, 0);
+  grulla.scale.setScalar(g.s);
+  grulla.rotation.z = rz + (flota ? Math.sin(t * 0.8) * 0.03 : 0);
+  const ang = base + amp * Math.sin(g.faseAla);
+  ponerAlas(ang + aleteoPropio('izq', t), ang + aleteoPropio('der', t));
+}
+function aleteoPropio(lado, t) {
+  if (reducido) return 0;
+  const d = t - aleteo[lado];
+  return d >= 0 && d < 1.6 ? 0.6 * Math.sin(d * 2 * Math.PI * 2.2) * Math.exp(-d * 2.6) : 0;
+}
+
+function pendulo(ancla, dt) {
+  if (reducido) { pend.a = 0; pend.w = 0; return; }
+  if (pend.px !== null && dt > 1e-4) {
+    const vx = (ancla.x - pend.px) / dt;
+    const ax = pend.vx === null ? 0 : (vx - pend.vx) / dt;
+    pend.vx = vx;
+    pend.ax += (ax - pend.ax) * Math.min(1, dt * 12);
+  }
+  pend.px = ancla.x;
+  pend.w += (-16 * Math.sin(pend.a) - pend.ax / pend.largo * Math.cos(pend.a) - 1.3 * pend.w) * dt;
+  pend.a = clamp(pend.a + pend.w * dt, -0.8, 0.8);
+}
+
+// Posición del punto del hilo respecto al centro de la bolsa, con su giro y escala actuales
+function desfaseAncla() {
+  return tmp2.copy(bm.ancla).applyAxisAngle(new THREE.Vector3(0, 0, 1), bolsa.rotation.z).multiplyScalar(bolsa.scale.x);
+}
+
+function actualizarBolsa(dt, o) {
+  const f = est.fase;
+  if (!bolsa.visible) { sombra.visible = false; return; }
+  bolsa.scale.setScalar(o.bs);
+  const alto = bm.h * o.bs;
+  if (f === 'regreso' || f === 'colgando') {
+    grulla.updateMatrixWorld(true);
+    const ancla = marcaGancho.getWorldPosition(tmp);
+    pend.largo = o.largo;
+    pendulo(ancla, dt);
+    bolsa.rotation.z = pend.a * 0.9;
+    const ex = ancla.x + Math.sin(pend.a) * o.largo, ey = ancla.y - Math.cos(pend.a) * o.largo;
+    const d = desfaseAncla();
+    bolsa.position.set(ex - d.x, ey - d.y, 0);
+    const pos = hilo.geometry.attributes.position;
+    pos.setXYZ(0, ancla.x, ancla.y, ancla.z);
+    pos.setXYZ(1, ex, ey, d.z);
+    pos.needsUpdate = true;
+    hilo.visible = true;
+    b.x = bolsa.position.x;
+    b.y = bolsa.position.y;
+  } else if (f === 'cayendo') {
+    const grav = alto * 14;
+    b.vy -= grav * dt;
+    b.y += b.vy * dt;
+    b.x += b.vx * dt;
+    b.vx *= Math.exp(-dt * 2.5);
+    b.rz *= Math.exp(-dt * 7);
+    if (b.y <= o.reposoY) {
+      b.y = o.reposoY;
+      if (b.vy < -alto * 1.3) b.vy = -b.vy * 0.38;
+      else { b.vy = 0; b.rz = 0; cambiarFase('suelo'); }
+    }
+    bolsa.rotation.z = b.rz;
+  } else {
+    b.y = o.reposoY;
+    bolsa.rotation.z = 0;
+  }
+  const limiteX = med.W / 2 / med.ppu - bm.w * o.bs * 0.7;
+  b.x = clamp(b.x, -limiteX, limiteX);
+
+  // Apertura
+  b.salto = 0;
+  if (f === 'abriendo') {
+    const u = est.tf;
+    b.salto = Math.sin(Math.PI * clamp(u / 0.42, 0, 1)) * alto * 0.22;
+    if (u >= 0.12 && pinza.parent === bolsaOrient) soltarPinza();
+    solapa.rotation.x = -SOLAPA_ABIERTA * easeOutBack(clamp((u - 0.16) / 0.5, 0, 1));
+    if (u >= 0.28 && !est.confeti) {
+      est.confeti = true;
+      lanzarConfeti(new THREE.Vector3(b.x, b.y + alto * 0.45, 0.4), alto);
+    }
+    if (u >= 0.7) cambiarFase('nota');
+  }
+  if (f !== 'regreso' && f !== 'colgando') bolsa.position.set(b.x, b.y + b.salto, 0);
+
+  // Sombra
+  sombra.visible = f !== 'regreso';
+  const altura = b.y + b.salto - o.reposoY;
+  const sueloY = aMundoY(o.sueloPx);
+  const ancho = bm.w * o.bs * 1.9;
+  sombra.position.set(b.x, sueloY - ancho * 0.03, -1.2);
+  sombra.scale.set(ancho, ancho * 0.26, 1);
+  sombra.material.opacity = 0.8 * clamp(1 - altura / (alto * 2.5), 0.12, 1);
+}
+
+function actualizarPinza(dt) {
+  if (!vueloPinza.activa) return;
+  const u = bm.h * bolsa.scale.x;
+  vueloPinza.t += dt;
+  vueloPinza.v.y -= u * 10 * dt;
+  pinza.position.addScaledVector(vueloPinza.v, dt);
+  pinza.rotation.z += vueloPinza.w * dt;
+  pinza.rotation.x += vueloPinza.w * 0.3 * dt;
+  if (vueloPinza.t > 1.8) { vueloPinza.activa = false; pinza.visible = false; }
+}
+
+function colocarNota(o) {
+  if (ui.nota.hidden) return;
+  const pxU = o.bs * med.ppu;
+  const arribaBolsa = o.sueloPx - bm.h * pxU - SOLAPA_H * pxU * 0.95 - 14;
+  const bx = aPantalla(tmp.set(b.x, 0, 0)).x;
+  const nw = ui.nota.offsetWidth;
+  const x = clamp(bx, nw / 2 + 16, Math.max(nw / 2 + 16, med.W - nw / 2 - 16));
+  ui.nota.style.left = `${x}px`;
+  ui.nota.style.bottom = `${med.H - arribaBolsa}px`;
+  ui.nota.style.maxHeight = `${Math.max(arribaBolsa - med.tituloAbajo - 8, 120)}px`;
+}
+
+/* ---------- Nieve ---------- */
+const nieve = $('nieve'), nctx = nieve.getContext('2d');
+let copos = [];
+function ajustarNieve() {
+  const dpr = Math.min(devicePixelRatio, 2);
+  nieve.width = Math.round(med.W * dpr);
+  nieve.height = Math.round(med.H * dpr);
+  nctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const n = Math.round(Math.min(160, med.W * med.H / 6500));
+  copos = Array.from({ length: n }, () => ({
+    x: Math.random() * med.W, y: Math.random() * med.H, r: 0.6 + Math.random() * 1.8,
+    v: 10 + Math.random() * 22, f: Math.random() * 6.28, a: 6 + Math.random() * 14, o: 0.25 + Math.random() * 0.5,
+  }));
+  dibujarNieve(0, 0);
+}
+function dibujarNieve(dt, t) {
+  nctx.clearRect(0, 0, med.W, med.H);
+  nctx.fillStyle = '#ffffff';
+  for (const c of copos) {
+    if (dt) {
+      c.y += c.v * dt * (c.r / 1.4);
+      c.x += Math.sin(t * 0.6 + c.f) * c.a * dt;
+      if (c.y > med.H + 4) { c.y = -4; c.x = Math.random() * med.W; }
+      if (c.x < -4) c.x = med.W + 4; else if (c.x > med.W + 4) c.x = -4;
+    }
+    nctx.globalAlpha = c.o;
+    nctx.beginPath();
+    nctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+    nctx.fill();
+  }
+  nctx.globalAlpha = 1;
+}
+
+/* ---------- Bucle ---------- */
+let ultimo = performance.now();
+function bucle(ahora) {
+  const dt = Math.min((ahora - ultimo) / 1000, 0.05);
+  ultimo = ahora;
+  reloj = ahora / 1000;
+  est.tf += dt;
+  if (!reducido) dibujarNieve(dt, reloj);
+  actualizarFase();
+  const o = objetivo();
+  actualizarGrulla(dt, reloj, o);
+  actualizarBolsa(dt, o);
+  actualizarPinza(dt);
+  actualizarConfeti(dt);
+  renderer.render(scene, camera);
+  actualizarBocadillo();
+  colocarNota(o);
+  requestAnimationFrame(bucle);
+}
+
+function ajustar() {
+  med.W = innerWidth;
+  med.H = innerHeight;
+  renderer.setSize(med.W, med.H);
+  camera.aspect = med.W / med.H;
+  camera.updateProjectionMatrix();
+  med.ppu = med.H / (2 * DIST * Math.tan(THREE.MathUtils.degToRad(FOV / 2)));
+  med.tituloAbajo = ui.titulo.getBoundingClientRect().bottom;
+  med.bocTop = med.tituloAbajo + 10;
+  med.seguro = parseFloat(getComputedStyle(ui.sonda).paddingBottom) || 0;
+  medirBocadillo();
+  ajustarNieve();
+}
+addEventListener('resize', ajustar);
+
+/* ---------- Interacción ---------- */
+let usaTeclado = false;
+addEventListener('keydown', () => { usaTeclado = true; });
+addEventListener('pointerdown', () => { usaTeclado = false; });
+const rayo = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function queHayDebajo(x, y) {
+  ndc.set(x / med.W * 2 - 1, -(y / med.H) * 2 + 1);
+  rayo.setFromCamera(ndc, camera);
+  const f = est.fase;
+  if (f === 'alas') {
+    const hit = rayo.intersectObjects(mallasAlas, false)[0];
+    return hit ? () => tocarAla(hit.object.userData.lado) : null;
+  }
+  if (f === 'colgando') return rayo.intersectObjects([...mallasGrulla, ...mallasBolsa], false).length ? soltar : null;
+  if (f === 'suelo') return rayo.intersectObjects(mallasBolsa, false).length ? abrir : null;
+  return null;
+}
+lienzo.addEventListener('pointerdown', (e) => { const accion = queHayDebajo(e.clientX, e.clientY); if (accion) accion(); });
+lienzo.addEventListener('pointermove', (e) => {
+  if (e.pointerType === 'mouse') lienzo.style.cursor = queHayDebajo(e.clientX, e.clientY) ? 'pointer' : '';
+});
+ui.vuela.addEventListener('click', volar);
+ui.cerrar.addEventListener('click', () => cambiarFase('leida'));
+ui.releer.addEventListener('click', () => cambiarFase('nota'));
+ui.kIzq.addEventListener('click', () => tocarAla('izq'));
+ui.kDer.addEventListener('click', () => tocarAla('der'));
+ui.kGrulla.addEventListener('click', soltar);
+ui.kBolsa.addEventListener('click', abrir);
+
+/* ---------- Fecha (hora de Madrid, del servidor si se puede) ---------- */
+async function fechaActual() {
+  if (location.protocol.startsWith('http')) {
+    try {
+      const url = location.href.split('#')[0];
+      const r = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+      const f = new Date(r.headers.get('Date'));
+      if (!isNaN(f)) return f;
+    } catch { /* sin servidor: hora del dispositivo */ }
+  }
+  return new Date();
+}
+function diaMadrid(fecha) {
+  const p = {};
+  for (const { type, value } of new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(fecha)) p[type] = +value;
+  if (p.year < 2026 || (p.year === 2026 && p.month < 12)) return 0;
+  if (p.year === 2026 && p.month === 12 && p.day <= 24) return p.day;
+  return 24;
+}
+
+async function iniciar() {
+  ajustar();
+  requestAnimationFrame(bucle);
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const fuentes = Promise.race([document.fonts.load('400 120px "Young Serif"'), espera(2500)]).catch(() => {});
+  const [fecha] = await Promise.all([fechaActual(), fuentes]);
+  ajustar();
+  const dia = diaMadrid(fecha);
+  if (PRUEBA) {
+    ui.pruebaDia.add(new Option('Antes', '0'));
+    for (let d = 1; d <= 24; d++) ui.pruebaDia.add(new Option(`Día ${d}`, String(d)));
+    ui.pruebaDia.value = String(dia);
+    ui.pruebaDia.addEventListener('change', () => iniciarDia(+ui.pruebaDia.value));
+    ui.prueba.hidden = false;
+  }
+  iniciarDia(dia);
+  document.fonts.ready.then(ajustar);
+}
+iniciar();
+</script>
+</body>
+</html>
