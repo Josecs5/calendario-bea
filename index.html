@@ -215,13 +215,13 @@ const CONTENIDO = {
 const COLOR = { rojo: '#d0473f', blancoRoto: '#f3ede3', kraft: '#c4955f', rojoBolsa: '#a93b34', oro: '#e2c072' };
 const TEXTO = {
   antes: 'La primera bolsita llega el 1 de diciembre',
-  alas: 'Toca mis dos alas',
+  alas: 'Púlsame en las dos alas para ver algo interesante',
   traido: 'Te he traído esto. Tócame',
   bolsa: 'Toca la bolsita',
 };
 const PRUEBA = new URLSearchParams(location.search).has('prueba');
 const FASES_CON_BOLSA = new Set(['regreso', 'colgando', 'cayendo', 'suelo', 'abriendo', 'nota', 'leida']);
-const FASES_EN_VUELO = new Set(['despegue', 'vacio', 'regreso']);
+const FASES_EN_VUELO = new Set(['llegada', 'despegue', 'vacio', 'regreso']);
 const FOV = 30, DIST = 20;
 const BASE_ALA = 0.14;         // ángulo de las alas abiertas (rad)
 const DUR_DESPEGUE = 1.15, DUR_VACIO = 0.8;
@@ -485,6 +485,7 @@ const bm = (() => {
   return { w: caja.max.x - caja.min.x, h: caja.max.y - caja.min.y, abajo: caja.min.y, ancla: a };
 })();
 bolsa.visible = false;
+grulla.visible = false; // aparece volando en iniciarDia
 
 /* ---------- Estado ---------- */
 const est = { dia: null, fase: 'cargando', tf: 0, tocadas: { izq: false, der: false }, bocVisible: false, confeti: false };
@@ -613,7 +614,14 @@ function iniciarDia(dia) {
   grulla.visible = true;
   grulla.rotation.set(0, 0, 0);
   g.colocada = false;
-  cambiarFase(dia === 0 ? 'antes' : 'alas');
+  // La grulla entra volando; el texto se prepara antes para que no se recoloque al llegar
+  ui.bocTexto.textContent = dia === 0 ? TEXTO.antes : TEXTO.alas;
+  medirBocadillo();
+  cambiarFase('llegada');
+  const o = objetivo();
+  g.s = o.gs;
+  g.xIni = -med.W / 2 / med.ppu - cm.w * g.s;
+  g.yIni = o.gy + 0.1 * med.H / med.ppu;
 }
 
 function tocarAla(lado) {
@@ -708,6 +716,7 @@ function actualizarFase() {
   if (f === 'despegue' && est.tf >= DUR_DESPEGUE) { grulla.visible = false; cambiarFase('vacio'); }
   else if (f === 'vacio' && est.tf >= DUR_VACIO) empezarRegreso();
   else if (f === 'regreso' && est.tf >= durRegreso()) cambiarFase('colgando');
+  else if (f === 'llegada' && est.tf >= durRegreso()) cambiarFase(est.dia === 0 ? 'antes' : 'alas');
 }
 
 function actualizarGrulla(dt, t, o) {
@@ -718,7 +727,7 @@ function actualizarGrulla(dt, t, o) {
     g.x = g.x0 + u * u * g.acel;
     g.y = g.y0 + u * u * g.subida;
     rz = Math.min(u * 0.5, 0.28); amp = 0.85; freq = 3.4; base = 0.12; flota = false;
-  } else if (f === 'regreso') {
+  } else if (f === 'regreso' || f === 'llegada') {
     const p = Math.min(est.tf / durRegreso(), 1), e = 1 - (1 - p) ** 3;
     g.s = o.gs;
     g.x = g.xIni + (o.gx - g.xIni) * e;
