@@ -183,9 +183,11 @@ import * as THREE from 'three';
    - alaIzquierda / alaDerecha: lo que dice cada ala al tocarla.
    - nota: el mensaje de la nota que sale de la bolsita.
    - bolsa: la instrucción de la etiqueta kraft (qué bolsita abrir).
+   - 0: presentación que se ve ANTES del 1 de diciembre (solo usa las dos alas).
    Todos los textos de ahora son DE EJEMPLO.
    ========================================================================== */
 const CONTENIDO = {
+  0:  { alaIzquierda: 'Ejemplo: Hola, Bea. Soy la grulla que te acompañará en diciembre.', alaDerecha: 'Ejemplo: Cada día te traeré una bolsita. Vuelve a verme pronto.' },
   1:  { alaIzquierda: 'Ejemplo: ¡Hola, Bea! Hoy empieza la cuenta atrás.',      alaDerecha: 'Ejemplo: Cada día de diciembre vendré a verte.',      nota: 'Ejemplo de nota del día 1. Aquí irá el mensaje de verdad.',  bolsa: 'Abre la bolsita 1' },
   2:  { alaIzquierda: 'Ejemplo: Buenos días, dormilona.',                         alaDerecha: 'Ejemplo: Hoy traigo algo pequeñito.',                 nota: 'Ejemplo de nota del día 2.',                                  bolsa: 'Abre la bolsita 2' },
   3:  { alaIzquierda: 'Ejemplo: Tercer día y ya te echo de menos.',               alaDerecha: 'Ejemplo: Toca la otra ala, que tiene más.',          nota: 'Ejemplo de nota del día 3.',                                  bolsa: 'Abre la bolsita 3' },
@@ -579,11 +581,10 @@ function cambiarFase(f) {
   ui.vuela.hidden = !(f === 'alas' && est.tocadas.izq && est.tocadas.der);
   ui.releer.hidden = f !== 'leida';
   ui.nota.hidden = f !== 'nota';
-  ui.kIzq.hidden = ui.kDer.hidden = f !== 'alas';
+  ui.kIzq.hidden = ui.kDer.hidden = f !== 'alas' && f !== 'antes';
   ui.kGrulla.hidden = f !== 'colgando';
   ui.kBolsa.hidden = f !== 'suelo';
-  if (f === 'antes') decir(TEXTO.antes);
-  else if (f === 'alas') decir(TEXTO.alas);
+  if (f === 'antes' || f === 'alas') decir(TEXTO.alas);
   else if (f === 'colgando') decir(TEXTO.traido);
   else if (f === 'suelo') decir(TEXTO.bolsa);
   else callar();
@@ -605,6 +606,7 @@ function iniciarDia(dia) {
   est.dia = dia;
   est.tocadas = { izq: false, der: false };
   est.confeti = false;
+  est.avisoEn = 0;
   marcarAla('izq', false);
   marcarAla('der', false);
   aleteo.izq = aleteo.der = -10;
@@ -617,7 +619,7 @@ function iniciarDia(dia) {
   grulla.rotation.set(0, 0, 0);
   g.colocada = false;
   // La grulla entra volando; el texto se prepara antes para que no se recoloque al llegar
-  ui.bocTexto.textContent = dia === 0 ? TEXTO.antes : TEXTO.alas;
+  ui.bocTexto.textContent = TEXTO.alas;
   medirBocadillo();
   cambiarFase('llegada');
   const o = objetivo();
@@ -633,12 +635,13 @@ function iniciarDia(dia) {
 }
 
 function tocarAla(lado) {
-  if (est.fase !== 'alas') return;
+  if (est.fase !== 'alas' && est.fase !== 'antes') return;
   est.tocadas[lado] = true;
   marcarAla(lado, true);
   aleteo[lado] = reloj;
   const c = CONTENIDO[est.dia];
   decir(lado === 'izq' ? c.alaIzquierda : c.alaDerecha);
+  if (est.fase === 'antes') { if (est.tocadas.izq && est.tocadas.der) est.avisoEn = reloj + 4; return; }
   if (est.tocadas.izq && est.tocadas.der && ui.vuela.hidden) ui.vuela.hidden = false;
 }
 
@@ -726,6 +729,7 @@ function actualizarFase() {
   else if (f === 'vacio' && est.tf >= DUR_VACIO) empezarRegreso();
   else if (f === 'regreso' && est.tf >= durRegreso()) cambiarFase('colgando');
   else if (f === 'llegada' && est.tf >= durLlegada()) cambiarFase(est.dia === 0 ? 'antes' : 'alas');
+  else if (f === 'antes' && est.avisoEn && reloj >= est.avisoEn) { est.avisoEn = 0; decir(TEXTO.antes); }
 }
 
 function actualizarGrulla(dt, t, o) {
@@ -962,7 +966,7 @@ function queHayDebajo(x, y) {
   ndc.set(x / med.W * 2 - 1, -(y / med.H) * 2 + 1);
   rayo.setFromCamera(ndc, camera);
   const f = est.fase;
-  if (f === 'alas') {
+  if (f === 'alas' || f === 'antes') {
     const hit = rayo.intersectObjects(mallasAlas, false)[0];
     return hit ? () => tocarAla(hit.object.userData.lado) : null;
   }
