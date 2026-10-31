@@ -131,6 +131,34 @@
   }
   .prueba option { color: #222; }
 
+  /* Bienvenida: primera pantalla, solo la primera vez */
+  .ui { transition: opacity .6s, visibility .6s; }
+  body.con-bienvenida .ui { opacity: 0; visibility: hidden; }
+  .bienvenida {
+    position: fixed; inset: 0; z-index: 4; display: flex; overflow: auto;
+    padding: calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 32px);
+    transition: opacity .6s, transform .6s;
+  }
+  .bienvenida.saliendo { opacity: 0; transform: translateY(-18px); pointer-events: none; }
+  .bienvenida-caja {
+    margin: auto; max-width: 420px;
+    display: flex; flex-direction: column; align-items: center; gap: 1.1rem; text-align: center;
+  }
+  .bienvenida-caja > * { animation: subir .8s cubic-bezier(.2, .8, .25, 1) backwards; }
+  .bienvenida-caja > :nth-child(2) { animation-delay: .15s; }
+  .bienvenida-caja > :nth-child(3) { animation-delay: .3s; }
+  .bienvenida-caja > :nth-child(4) { animation-delay: .5s; }
+  @keyframes subir { from { opacity: 0; transform: translateY(18px); } }
+  .bienvenida-grulla { width: 84px; height: 84px; filter: drop-shadow(0 8px 14px rgba(5, 8, 20, .4)); }
+  .bienvenida-grulla path { animation: flotar 4s ease-in-out infinite; transform-origin: center; }
+  @keyframes flotar { 50% { transform: translateY(-5px) rotate(-3deg); } }
+  .bienvenida h2 {
+    margin: 0; font-family: 'Young Serif', Georgia, serif; font-weight: 400;
+    font-size: clamp(2.6rem, 12vw, 3.8rem); line-height: 1.05;
+    text-shadow: 0 2px 14px rgba(10, 14, 35, .45);
+  }
+  .bienvenida p { margin: 0 0 .6rem; max-width: 30ch; font-size: 1.12rem; line-height: 1.55; color: rgba(243, 237, 227, .88); white-space: pre-line; }
+
   .solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #sonda { position: absolute; visibility: hidden; padding-bottom: env(safe-area-inset-bottom, 0px); }
 
@@ -177,11 +205,22 @@
     <div id="sonda"></div>
   </main>
 
+  <section id="bienvenida" class="bienvenida" aria-labelledby="bienvenida-titulo" hidden>
+    <div class="bienvenida-caja">
+      <svg class="bienvenida-grulla" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 11 8 3l7 8-7-2z" fill="#d0473f"/></svg>
+      <h2 id="bienvenida-titulo"></h2>
+      <p id="bienvenida-texto"></p>
+      <button id="bienvenida-boton" class="btn"></button>
+    </div>
+  </section>
+
 <script type="module">
 import * as THREE from 'three';
 
 /* ==========================================================================
    CONTENIDO: edita aquí los textos.
+   - BIENVENIDA: la primera pantalla. Solo se ve la primera vez que entra
+        (se recuerda con una cookie; con ?prueba sale siempre).
    - 0: presentación que se ve ANTES del 1 de diciembre.
         alaIzquierda / alaDerecha: lo que dice cada ala al tocarla.
    - 1–24: un día cada uno.
@@ -189,6 +228,11 @@ import * as THREE from 'three';
         bolsa: la instrucción de la etiqueta kraft (qué bolsita abrir).
    Todos los textos de ahora son DE EJEMPLO.
    ========================================================================== */
+const BIENVENIDA = {
+  titulo: 'Tu calendario de adviento',
+  texto: 'Bea, del 1 al 24 de diciembre una grulla de papel vendrá cada día a traerte una bolsita con una nota dentro.\nLa nota te dirá qué bolsita de verdad te toca abrir.\nCada una solo se puede abrir en su día, así que no te olvides de volver.',
+  boton: 'Conocer a la grulla',
+};
 const CONTENIDO = {
   0:  { alaIzquierda: 'Ejemplo: Hola, Bea. Soy la grulla que te acompañará en diciembre.', alaDerecha: 'Ejemplo: Cada día te traeré una bolsita. Vuelve a verme pronto.' },
   1:  { nota: 'Ejemplo de nota del día 1. Aquí irá el mensaje de verdad.',  bolsa: 'Abre la bolsita 1' },
@@ -244,6 +288,7 @@ const ui = {
   notaBolsa: $('nota-bolsa'), cerrar: $('cerrar'), prueba: $('prueba'), pruebaDia: $('prueba-dia'),
   hojaTexto: $('hoja-texto'), kHoja: $('k-hoja'),
   kIzq: $('k-izq'), kDer: $('k-der'), kGrulla: $('k-grulla'), kBolsa: $('k-bolsa'), sonda: $('sonda'),
+  bien: $('bienvenida'), bienTitulo: $('bienvenida-titulo'), bienTexto: $('bienvenida-texto'), bienBoton: $('bienvenida-boton'),
 };
 const clamp = THREE.MathUtils.clamp;
 
@@ -1199,12 +1244,32 @@ function diaMadrid(fecha) {
   return 24;
 }
 
+/* ---------- Bienvenida: solo la primera vez (se recuerda con una cookie) ---------- */
+const COOKIE_BIENVENIDA = 'bea-bienvenida=1';
+function bienvenida() {
+  if (!PRUEBA && document.cookie.split('; ').includes(COOKIE_BIENVENIDA)) return Promise.resolve();
+  ui.bienTitulo.textContent = BIENVENIDA.titulo;
+  ui.bienTexto.textContent = BIENVENIDA.texto;
+  ui.bienBoton.textContent = BIENVENIDA.boton;
+  document.body.classList.add('con-bienvenida');
+  ui.bien.hidden = false;
+  return new Promise((resolve) => {
+    ui.bienBoton.addEventListener('click', () => {
+      if (!PRUEBA) document.cookie = `${COOKIE_BIENVENIDA}; max-age=${60 * 60 * 24 * 400}; path=/; SameSite=Lax`;
+      ui.bien.classList.add('saliendo');
+      document.body.classList.remove('con-bienvenida');
+      // La grulla empieza a volar cuando la bienvenida ya se ha ido
+      setTimeout(() => { ui.bien.hidden = true; resolve(); }, reducido ? 0 : 600);
+    }, { once: true });
+  });
+}
+
 async function iniciar() {
   ajustar();
   requestAnimationFrame(bucle);
   const espera = (ms) => new Promise((r) => setTimeout(r, ms));
   const fuentes = Promise.race([document.fonts.load('400 120px "Young Serif"'), espera(2500)]).catch(() => {});
-  const [fecha] = await Promise.all([fechaActual(), fuentes]);
+  const [fecha] = await Promise.all([fechaActual(), fuentes, bienvenida()]);
   ajustar();
   est.desfase = fecha.getTime() - Date.now();
   const dia = diaMadrid(fecha);
