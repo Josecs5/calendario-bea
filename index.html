@@ -108,6 +108,17 @@
   }
   .nota .btn { display: block; margin-left: auto; font-size: 1rem; padding: .7em 1.5em; min-height: 44px; }
 
+  /* Contador gigante (desde el 25 de diciembre) */
+  .contador { position: absolute; left: 0; right: 0; margin: 0; text-align: center; }
+  .contador:not([hidden]) { animation: contador-entra .9s cubic-bezier(.2, .9, .25, 1.2) backwards; }
+  @keyframes contador-entra { from { opacity: 0; transform: translateY(30px) scale(.85); } }
+  .contador-numero {
+    display: block; font-family: 'Young Serif', Georgia, serif; font-weight: 400;
+    font-size: clamp(6rem, min(42vw, 26vh), 15rem); line-height: 1.15; font-variant-numeric: tabular-nums;
+    color: var(--crema); text-shadow: 0 6px 0 rgba(8, 12, 30, .25), 0 18px 40px rgba(10, 14, 35, .5);
+  }
+  .contador-texto { display: block; margin-top: .3rem; font-size: clamp(1.15rem, 5vw, 1.5rem); font-weight: 500; color: rgba(243, 237, 227, .88); }
+
   /* Accesos de teclado: solo visibles con foco */
   .teclas {
     position: absolute; left: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
@@ -191,6 +202,11 @@
 
     <button id="releer" class="btn btn-sec abajo" hidden>Volver a leer la nota</button>
 
+    <p id="contador" class="contador" aria-live="polite" hidden>
+      <span id="contador-numero" class="contador-numero"></span>
+      <span id="contador-texto" class="contador-texto"></span>
+    </p>
+
     <section id="nota" class="nota" aria-labelledby="nota-fecha" hidden>
       <p id="nota-fecha" class="nota-fecha"></p>
       <p id="nota-texto" class="nota-texto"></p>
@@ -226,6 +242,7 @@ import * as THREE from 'three';
    - 1–24: un día cada uno.
         nota: el mensaje de la nota que sale de la bolsita.
         bolsa: la instrucción de la etiqueta kraft (qué bolsita abrir).
+   - DESPUES: desde el 25 de diciembre, un contador gigante con los días que faltan hasta esa fecha.
    Todos los textos de ahora son DE EJEMPLO.
    ========================================================================== */
 const BIENVENIDA = {
@@ -260,6 +277,7 @@ const CONTENIDO = {
   23: { nota: 'Ejemplo de nota del día 23.',                                 bolsa: 'Abre la bolsita 23' },
   24: { nota: 'Ejemplo de nota del día 24. La última, la más bonita.',       bolsa: 'Abre la bolsita roja' },
 };
+const DESPUES = { hasta: [2027, 4, 5], texto: 'para el 5 de abril' }; // [año, mes, día]
 
 const COLOR = { rojo: '#d0473f', blancoRoto: '#f3ede3', kraft: '#c4955f', rojoBolsa: '#a93b34', oro: '#e2c072' };
 const TEXTO = {
@@ -288,6 +306,7 @@ const ui = {
   notaBolsa: $('nota-bolsa'), cerrar: $('cerrar'), prueba: $('prueba'), pruebaDia: $('prueba-dia'),
   hojaTexto: $('hoja-texto'), kHoja: $('k-hoja'),
   kIzq: $('k-izq'), kDer: $('k-der'), kGrulla: $('k-grulla'), kBolsa: $('k-bolsa'), sonda: $('sonda'),
+  contador: $('contador'), contadorNumero: $('contador-numero'), contadorTexto: $('contador-texto'),
   bien: $('bienvenida'), bienTitulo: $('bienvenida-titulo'), bienTexto: $('bienvenida-texto'), bienBoton: $('bienvenida-boton'),
 };
 const clamp = THREE.MathUtils.clamp;
@@ -717,7 +736,8 @@ function aPantalla(v) {
   return { x: (p.x + 1) / 2 * med.W, y: (1 - p.y) / 2 * med.H };
 }
 
-const conBolsa = () => FASES_CON_BOLSA.has(est.fase) || (est.fase === 'llegada' && est.dia > 0);
+const hayBolsita = (dia) => dia >= 1 && dia <= 24; // 0 = antes de diciembre, 25 = después del calendario
+const conBolsa = () => FASES_CON_BOLSA.has(est.fase) || (est.fase === 'llegada' && hayBolsita(est.dia));
 
 /* Dónde debe estar cada cosa según la fase y el tamaño de pantalla */
 function objetivo() {
@@ -727,7 +747,15 @@ function objetivo() {
   const rh = Math.max(abajo - arriba, 160);
   const o = { sueloPx: abajo };
   let sp, cy;
-  if (!conBolsa()) {
+  if (est.dia === 25) { // la grulla arriba y el contador gigante debajo, el conjunto centrado
+    sp = Math.min(rh * 0.3 / cm.h, (W - 32) * 0.5 / cm.w, 240 / cm.h);
+    const letra = clamp(Math.min(W * 0.42, H * 0.26), 96, 240); // el font-size de .contador-numero
+    const alto = cm.h * sp + 8 + letra * 1.15 + 44;
+    const ini = med.tituloAbajo + 24;
+    const top = ini + Math.max(0, (H - med.seguro - 40 - ini - alto) * 0.4);
+    cy = top + cm.h * sp / 2;
+    o.contadorPx = top + cm.h * sp + 8;
+  } else if (!conBolsa()) {
     sp = Math.min(rh * 0.8 / cm.h, (W - 32) * 0.84 / cm.w, 520 / cm.h);
     cy = arriba + rh / 2;
   } else {
@@ -795,6 +823,7 @@ function cambiarFase(f) {
   ui.kIzq.hidden = ui.kDer.hidden = f !== 'antes';
   ui.kGrulla.hidden = f !== 'colgando';
   ui.kBolsa.hidden = f !== 'suelo';
+  ui.contador.hidden = f !== 'despues';
   if (f === 'antes') decir(TEXTO.alas);
   else if (f === 'colgando') decir(TEXTO.traido);
   else if (f === 'suelo') decir(TEXTO.bolsa);
@@ -824,7 +853,7 @@ function iniciarDia(dia) {
   ui.kHoja.hidden = true;
   verAla('izq', true);
   verAla('der', true);
-  est.abierta = dia > 0 && estaAbierta(dia);
+  est.abierta = hayBolsita(dia) && estaAbierta(dia);
   marcarAla('izq', false);
   marcarAla('der', false);
   aleteo.izq = aleteo.der = -10;
@@ -832,7 +861,7 @@ function iniciarDia(dia) {
   restaurarPinza();
   solapa.rotation.x = 0;
   while (confeti.length) quitarConfeti(confeti.length - 1);
-  if (dia > 0) {
+  if (hayBolsita(dia)) {
     pintarBolsa(dia);
     bolsa.visible = true;
     b.x = 0;
@@ -849,8 +878,8 @@ function iniciarDia(dia) {
   const o = objetivo();
   // Recorrido: entra por la izquierda, cruza arriba, baja por la derecha, vuelve por abajo y acaba en el centro.
   // Si trae la bolsita colgando, el recorrido va más alto para que la bolsa no se salga por abajo.
-  const lleva = dia > 0 && !est.abierta;
-  est.escalaRuta = dia > 0 ? 0.8 : 0.55;
+  const lleva = hayBolsita(dia) && !est.abierta;
+  est.escalaRuta = hayBolsita(dia) ? 0.8 : 0.55;
   const sv = o.gs * est.escalaRuta;
   const alto = lleva ? (fy) => 0.2 + (fy - 0.3) * 0.55 : (fy) => fy;
   const P = (fx, fy) => new THREE.Vector3(aMundoX(fx * med.W) - cm.cx * sv, aMundoY(alto(fy) * med.H) - cm.cy * sv, 0);
@@ -888,6 +917,11 @@ function textoCuenta() {
   if (!d && !h) partes.push(cuantos(m, 'minuto', 'minutos'));
   const verbo = partes.length === 1 && partes[0].startsWith('1 ') ? 'Falta' : 'Faltan';
   return `${verbo} ${partes.join(' y ')} para que puedas abrir tu primera bolsita`;
+}
+function diasHastaDespues() {
+  const p = partesMadrid(new Date(ahora()));
+  const [a, m, d] = DESPUES.hasta;
+  return Math.max(0, Math.round((Date.UTC(a, m - 1, d) - Date.UTC(p.year, p.month - 1, p.day)) / 864e5));
 }
 const textoHecho = () => (est.dia === 24 ? TEXTO.fin : TEXTO.manana(est.dia + 1));
 
@@ -963,8 +997,14 @@ const easeOutBack = (p) => { const c1 = 1.4, c3 = c1 + 1; return 1 + c3 * (p - 1
 
 function actualizarFase() {
   const f = est.fase;
-  if (f === 'llegada' && est.tf >= durLlegada()) cambiarFase(est.dia === 0 ? 'antes' : est.abierta ? 'leida' : 'colgando');
-  else if (f === 'antes') {
+  if (f === 'llegada' && est.tf >= durLlegada()) cambiarFase(est.dia === 0 ? 'antes' : est.dia === 25 ? 'despues' : est.abierta ? 'leida' : 'colgando');
+  else if (f === 'despues') {
+    const n = String(diasHastaDespues());
+    if (ui.contadorNumero.textContent !== n) {
+      ui.contadorNumero.textContent = n;
+      ui.contadorTexto.textContent = `${n === '1' ? 'día' : 'días'} ${DESPUES.texto}`;
+    }
+  } else if (f === 'antes') {
     if (est.cuenta) {
       const texto = textoCuenta();
       if (texto === null) { // ya es 1 de diciembre
@@ -1173,6 +1213,7 @@ function bucle(ahora) {
   renderer.render(scene, camera);
   actualizarBocadillo();
   colocarNota(o);
+  if (!ui.contador.hidden) ui.contador.style.top = `${o.contadorPx}px`;
   requestAnimationFrame(bucle);
 }
 
@@ -1209,8 +1250,10 @@ function queHayDebajo(x, y) {
   }
   if (f === 'colgando') return rayo.intersectObjects([...mallasGrulla, ...mallasBolsa], false).length ? soltar : null;
   if (f === 'suelo') return rayo.intersectObjects(mallasBolsa, false).length ? abrir : null;
+  if (f === 'despues') return rayo.intersectObjects(mallasGrulla, false).length ? aletear : null;
   return null;
 }
+const aletear = () => { aleteo.izq = aleteo.der = reloj; };
 lienzo.addEventListener('pointerdown', (e) => { const accion = queHayDebajo(e.clientX, e.clientY); if (accion) accion(); });
 lienzo.addEventListener('pointermove', (e) => {
   if (e.pointerType === 'mouse') lienzo.style.cursor = queHayDebajo(e.clientX, e.clientY) ? 'pointer' : '';
@@ -1236,12 +1279,17 @@ async function fechaActual() {
   }
   return new Date();
 }
-function diaMadrid(fecha) {
+const FORMATO_MADRID = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', year: 'numeric', month: 'numeric', day: 'numeric' });
+function partesMadrid(fecha) {
   const p = {};
-  for (const { type, value } of new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(fecha)) p[type] = +value;
+  for (const { type, value } of FORMATO_MADRID.formatToParts(fecha)) p[type] = +value;
+  return p;
+}
+function diaMadrid(fecha) {
+  const p = partesMadrid(fecha);
   if (p.year < 2026 || (p.year === 2026 && p.month < 12)) return 0;
   if (p.year === 2026 && p.month === 12 && p.day <= 24) return p.day;
-  return 24;
+  return 25; // desde el 25 de diciembre: contador gigante
 }
 
 /* ---------- Bienvenida: solo la primera vez (se recuerda con una cookie) ---------- */
@@ -1276,6 +1324,7 @@ async function iniciar() {
   if (PRUEBA) {
     ui.pruebaDia.add(new Option('Antes', '0'));
     for (let d = 1; d <= 24; d++) ui.pruebaDia.add(new Option(`Día ${d}`, String(d)));
+    ui.pruebaDia.add(new Option('Después', '25'));
     ui.pruebaDia.value = String(dia);
     ui.pruebaDia.addEventListener('change', () => iniciarDia(+ui.pruebaDia.value));
     ui.prueba.hidden = false;
