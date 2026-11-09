@@ -147,6 +147,28 @@
     content: ''; position: absolute; left: 11px; top: 50%; width: 7px; height: 7px;
     border-radius: 50%; background: var(--papel); transform: translateY(-50%);
   }
+  /* Lo que hay dentro de la bolsita de verdad */
+  .dentro {
+    display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .75rem;
+    margin: -.2rem 0 1.1rem; padding: 0; list-style: none;
+    font-size: .98rem; font-weight: 500; color: rgba(46, 33, 25, .82);
+  }
+  .dentro li { display: flex; align-items: center; gap: .35rem; }
+  .dentro svg { width: 26px; height: 26px; flex: none; fill: none; stroke: var(--tinta); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  /* Pista del regalo del 24: un recorte pegado con cinta dentro de la nota */
+  .pista {
+    position: relative; margin: .5rem 0 1.3rem; padding: 1rem 1rem .85rem;
+    background: var(--fibras), var(--crema);
+    border: 1.5px dashed rgba(165, 50, 42, .5); border-radius: 2px;
+    transform: rotate(1.2deg);
+  }
+  .pista::before {
+    content: ''; position: absolute; left: 50%; top: -10px; width: 68px; height: 19px;
+    background: rgba(216, 180, 131, .8); box-shadow: 0 1px 1px rgba(24, 12, 5, .15);
+    transform: translateX(-50%) rotate(-3deg);
+  }
+  .pista-titulo { margin: 0 0 .3rem; font-size: .95rem; font-weight: 700; font-variation-settings: 'INFM' 70, 'BNCE' 15; color: var(--rojo); }
+  .pista-texto { margin: 0; font-size: 1.05rem; line-height: 1.45; font-weight: 600; }
   .nota .btn { display: block; margin-left: auto; font-size: 1rem; min-height: 44px; color: var(--crema); filter: none; }
   .nota .btn::before { background: var(--kraft-noche); }
   .nota .btn::after { background: var(--papel); box-shadow: none; }
@@ -258,7 +280,16 @@
     <section id="nota" class="nota" aria-labelledby="nota-fecha" hidden>
       <p id="nota-fecha" class="nota-fecha"></p>
       <p id="nota-texto" class="nota-texto"></p>
+      <div id="nota-pista" class="pista" hidden>
+        <p id="nota-pista-titulo" class="pista-titulo"></p>
+        <p id="nota-pista-texto" class="pista-texto"></p>
+      </div>
       <p class="etiqueta"><span id="nota-bolsa"></span></p>
+      <ul id="nota-dentro" class="dentro" aria-label="Dentro de la bolsita">
+        <li>Dentro:</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2.5" width="16" height="19" rx="1"/><rect x="6.5" y="5" width="11" height="10.5"/><circle cx="14.6" cy="7.9" r="1.2"/><path d="m6.5 15.2 3.6-4 2.8 2.8 1.6-1.4 3 2.6"/></svg><span id="nota-foto"></span></li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-20 12 12)"><ellipse cx="12" cy="12" rx="5" ry="4"/><path d="M7 12 2.5 8.5v7zM17 12l4.5-3.5v7zM10.4 8.3c-.8 2.4-.8 5 0 7.4M13.6 8.3c.8 2.4.8 5 0 7.4"/></g></svg><span id="nota-dulce"></span></li>
+      </ul>
       <button id="cerrar" class="btn btn-sec">Cerrar</button>
     </section>
 
@@ -290,12 +321,16 @@ import * as THREE from 'three';
    - 1–24: un día cada uno.
         nota: el mensaje de la nota que sale de la bolsita.
         bolsa: la instrucción de la etiqueta kraft (qué bolsita abrir).
+        pista (opcional): una pista sobre el regalo del día 24. Sale en un recorte dentro de la nota
+             y se numera sola ("Pista 2 de 6"). Para mover una pista de día, cambia la línea de sitio.
+        dulce (opcional): qué dulce concreto lleva esa bolsita; si no se pone, sale DENTRO.dulce.
+   - DENTRO: lo que se ve debajo de la etiqueta en los días 1–23 (la bolsita que se da en persona).
    - DESPUES: desde el 25 de diciembre, un contador gigante con los días que faltan hasta esa fecha.
    Todos los textos de ahora son DE EJEMPLO.
    ========================================================================== */
 const BIENVENIDA = {
   titulo: 'Tu calendario de adviento',
-  texto: 'Bea, del 1 al 24 de diciembre una grulla de papel vendrá cada día a traerte una bolsita con una nota dentro.\nLa nota te dirá qué bolsita de verdad te toca abrir.\nCada una solo se puede abrir en su día, así que no te olvides de volver.',
+  texto: 'Bea, del 1 al 24 de diciembre una grulla de papel vendrá cada día a traerte una bolsita con una nota dentro.\nLa nota te dirá qué bolsita de verdad te toca abrir: en cada una habrá una foto y un dulce.\nAlgunos días la nota traerá también una pista del regalo del día 24. ¿Lo adivinarás?\nCada una solo se puede abrir en su día, así que no te olvides de volver.',
   boton: 'Conocer a la grulla',
 };
 const CONTENIDO = {
@@ -303,36 +338,44 @@ const CONTENIDO = {
   1:  { nota: 'Ejemplo de nota del día 1. Aquí irá el mensaje de verdad.',  bolsa: 'Abre la bolsita 1' },
   2:  { nota: 'Ejemplo de nota del día 2.',                                  bolsa: 'Abre la bolsita 2' },
   3:  { nota: 'Ejemplo de nota del día 3.',                                  bolsa: 'Abre la bolsita 3' },
-  4:  { nota: 'Ejemplo de nota del día 4.',                                  bolsa: 'Abre la bolsita 4' },
+  4:  { nota: 'Ejemplo de nota del día 4.',                                  bolsa: 'Abre la bolsita 4',
+        pista: 'No se come, no se lee y no se viste. Pero lo vas a usar todos los días.' },
   5:  { nota: 'Ejemplo de nota del día 5.',                                  bolsa: 'Abre la bolsita 5' },
   6:  { nota: 'Ejemplo de nota del día 6.',                                  bolsa: 'Abre la bolsita 6' },
   7:  { nota: 'Ejemplo de nota del día 7.',                                  bolsa: 'Abre la bolsita 7' },
-  8:  { nota: 'Ejemplo de nota del día 8.',                                  bolsa: 'Abre la bolsita 8' },
+  8:  { nota: 'Ejemplo de nota del día 8.',                                  bolsa: 'Abre la bolsita 8',
+        pista: 'Es azul, con un puntito de violeta: del color de unos vaqueros recién estrenados.' },
   9:  { nota: 'Ejemplo de nota del día 9.',                                  bolsa: 'Abre la bolsita 9' },
   10: { nota: 'Ejemplo de nota del día 10.',                                 bolsa: 'Abre la bolsita 10' },
   11: { nota: 'Ejemplo de nota del día 11.',                                 bolsa: 'Abre la bolsita 11' },
-  12: { nota: 'Ejemplo de nota del día 12.',                                 bolsa: 'Abre la bolsita 12' },
+  12: { nota: 'Ejemplo de nota del día 12.',                                 bolsa: 'Abre la bolsita 12',
+        pista: 'Te va a cuidar todos los días, aunque no te des cuenta.' },
   13: { nota: 'Ejemplo de nota del día 13.',                                 bolsa: 'Abre la bolsita 13' },
   14: { nota: 'Ejemplo de nota del día 14.',                                 bolsa: 'Abre la bolsita 14' },
   15: { nota: 'Ejemplo de nota del día 15.',                                 bolsa: 'Abre la bolsita 15' },
-  16: { nota: 'Ejemplo de nota del día 16.',                                 bolsa: 'Abre la bolsita 16' },
+  16: { nota: 'Ejemplo de nota del día 16.',                                 bolsa: 'Abre la bolsita 16',
+        pista: 'Es famoso en internet, aunque no tiene redes sociales.' },
   17: { nota: 'Ejemplo de nota del día 17.',                                 bolsa: 'Abre la bolsita 17' },
   18: { nota: 'Ejemplo de nota del día 18.',                                 bolsa: 'Abre la bolsita 18' },
   19: { nota: 'Ejemplo de nota del día 19.',                                 bolsa: 'Abre la bolsita 19' },
-  20: { nota: 'Ejemplo de nota del día 20.',                                 bolsa: 'Abre la bolsita 20' },
+  20: { nota: 'Ejemplo de nota del día 20.',                                 bolsa: 'Abre la bolsita 20',
+        pista: 'Su familia lleva más de cien años haciendo lo mismo. Y tiene asa, aunque no es una bolsa.' },
   21: { nota: 'Ejemplo de nota del día 21.',                                 bolsa: 'Abre la bolsita 21' },
   22: { nota: 'Ejemplo de nota del día 22.',                                 bolsa: 'Abre la bolsita 22' },
-  23: { nota: 'Ejemplo de nota del día 23.',                                 bolsa: 'Abre la bolsita 23' },
+  23: { nota: 'Ejemplo de nota del día 23.',                                 bolsa: 'Abre la bolsita 23',
+        pista: 'Última pista: 1,18. Mañana lo entiendes todo.' },
   24: { nota: 'Ejemplo de nota del día 24. La última, la más bonita.',       bolsa: 'Abre la bolsita roja' },
 };
 const DESPUES = { hasta: [2027, 4, 5], texto: 'para el 5 de abril' }; // [año, mes, día]
+const DENTRO = { foto: 'una foto', dulce: 'un dulce' };
+const DIAS_CON_PISTA = Object.keys(CONTENIDO).map(Number).filter((d) => CONTENIDO[d].pista).sort((a, b) => a - b);
 
 const COLOR = { rojo: '#d0473f', blancoRoto: '#f3ede3', kraft: '#c4955f', rojoBolsa: '#a93b34', oro: '#f0dcae' };
 const TEXTO = {
   alas: 'Púlsame en las dos alas para ver algo interesante',
   traido: 'Te he traído esto. Tócame',
   bolsa: 'Toca la bolsita',
-  manana: (n) => `Mañana podrás abrir la bolsita ${n}`,
+  manana: (n) => (CONTENIDO[n]?.pista ? `Mañana podrás abrir la bolsita ${n}… y trae una pista del día 24` : `Mañana podrás abrir la bolsita ${n}`),
   fin: 'Esta era la última bolsita: el calendario se ha acabado. ¡Feliz Navidad, Bea!',
 };
 const PRUEBA = new URLSearchParams(location.search).has('prueba');
@@ -351,7 +394,8 @@ const $ = (id) => document.getElementById(id);
 const ui = {
   titulo: $('titulo'), boc: $('bocadillo'), bocTexto: $('bocadillo-texto'), cola: $('cola'), colaPath: $('cola-path'),
   releer: $('releer'), nota: $('nota'), notaFecha: $('nota-fecha'), notaTexto: $('nota-texto'),
-  notaBolsa: $('nota-bolsa'), cerrar: $('cerrar'), prueba: $('prueba'), pruebaDia: $('prueba-dia'),
+  notaBolsa: $('nota-bolsa'), notaPista: $('nota-pista'), notaPistaTitulo: $('nota-pista-titulo'), notaPistaTexto: $('nota-pista-texto'),
+  notaDentro: $('nota-dentro'), notaFoto: $('nota-foto'), notaDulce: $('nota-dulce'), cerrar: $('cerrar'), prueba: $('prueba'), pruebaDia: $('prueba-dia'),
   hojaTexto: $('hoja-texto'), kHoja: $('k-hoja'),
   kIzq: $('k-izq'), kDer: $('k-der'), kGrulla: $('k-grulla'), kBolsa: $('k-bolsa'), sonda: $('sonda'),
   contador: $('contador'), contadorNumero: $('contador-numero'), contadorTexto: $('contador-texto'),
@@ -882,6 +926,15 @@ function cambiarFase(f) {
     ui.notaFecha.textContent = `${est.dia} de diciembre`;
     ui.notaTexto.textContent = c.nota;
     ui.notaBolsa.textContent = c.bolsa;
+    const n = DIAS_CON_PISTA.indexOf(est.dia) + 1;
+    ui.notaPista.hidden = !n;
+    if (n) {
+      ui.notaPistaTitulo.textContent = `Pista ${n} de ${DIAS_CON_PISTA.length} del regalo del día 24`;
+      ui.notaPistaTexto.textContent = c.pista;
+    }
+    ui.notaDentro.hidden = est.dia === 24; // el 24 es el regalo grande
+    ui.notaFoto.textContent = DENTRO.foto;
+    ui.notaDulce.textContent = c.dulce || DENTRO.dulce;
     colocarNota(objetivo());
     ui.cerrar.focus({ preventScroll: true });
   }
