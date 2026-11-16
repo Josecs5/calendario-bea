@@ -59,7 +59,10 @@ Jose quiere:
 ### Supabase
 
 - Proyecto gratuito nuevo, región UE.
-- **Auth:** correo + contraseña. Registro público desactivado. Dos cuentas creadas a mano:
+- **Auth:** **usuario + contraseña** (decidido por Jose: nada de correo). Supabase solo
+  admite correo o teléfono, así que cada usuario se guarda por dentro con un correo
+  inventado que nunca recibe nada (`<usuario>@<dominio fijo>`, creado ya confirmado).
+  Bea solo ve y escribe su usuario. Registro público desactivado. Dos cuentas creadas a mano:
   - Bea (cuenta normal).
   - Jose, con `app_metadata.rol = 'admin'`: puede ver las fotos de cualquier día, para probar.
 - **Tabla `bolsitas_abiertas`**: `user_id uuid` (→ `auth.users`), `dia smallint` (1–24),
@@ -77,9 +80,10 @@ Jose quiere:
 - `supabase-js` v2 añadido al `importmap` existente (versión fija desde un CDN).
 - **Orden al entrar:** login (si no hay sesión) → bienvenida (solo la primera vez, como ahora)
   → grulla. La sesión se recuerda, así que el login se ve una sola vez por dispositivo.
-- **Pantalla de login:** misma caja que la bienvenida: grulla, título, campos de correo y
-  contraseña, botón «Entrar», mensaje de error en lenguaje normal («Ese correo o esa
-  contraseña no son correctos»). Se pide siempre, también antes de diciembre.
+- **Pantalla de login:** misma caja que la bienvenida: grulla, título, campos de usuario y
+  contraseña, botón «Entrar», mensaje de error en lenguaje normal («Ese usuario o esa
+  contraseña no son correctos»). Campo «Usuario»; se quitan espacios y se pasa a minúsculas
+  antes de convertirlo en el correo interno. Se pide siempre, también antes de diciembre.
 - **Bolsitas abiertas:** al entrar se cargan de la tabla. `guardarAbierta` escribe en la tabla
   y además en `localStorage` como copia; `estaAbierta` usa lo cargado más esa copia.
   La primera vez que entra, lo que hubiera en `localStorage` se sube a su cuenta.
@@ -99,6 +103,7 @@ Jose quiere:
 
 ## Decisiones que tomé yo (Claude), para revisar
 
+- Dominio inventado para los correos internos.
 - Cuenta de admin para Jose y el comportamiento de `?prueba` con login.
 - Login obligatorio siempre, también antes de diciembre.
 - Copia en `localStorage` como respaldo y migración de lo ya abierto.
@@ -114,5 +119,5 @@ Jose quiere:
 
 ## Pendiente de Jose
 
-- El correo de Bea para su cuenta (o el que quiera usar) y el de Jose para la cuenta admin.
+- El nombre de usuario de Bea y el de Jose (cuenta admin). Las contraseñas las elige Jose.
 - Las fotos, cuando las tenga.
