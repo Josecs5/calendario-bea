@@ -75,6 +75,10 @@ Jose quiere:
   Nadie puede subir ni borrar desde la web; las fotos se suben con la clave de servicio,
   desde fuera del navegador.
 
+- **Que no se pause:** los proyectos gratuitos se pausan tras 7 días sin uso. Un workflow
+  de GitHub Actions hace una consulta cada 3 días hasta el 5 de abril de 2027.
+- Las fotos las sube un script iniciando sesión con la cuenta admin (no hace falta clave de servicio).
+
 ### Página
 
 - `supabase-js` v2 añadido al `importmap` existente (versión fija desde un CDN).
