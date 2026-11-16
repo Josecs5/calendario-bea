@@ -235,6 +235,22 @@
   }
   .bienvenida p { margin: 0 0 .6rem; max-width: 34ch; font-size: 1.1rem; line-height: 1.55; color: var(--crema-suave); white-space: pre-line; }
 
+  /* Login: la misma caja que la bienvenida, con dos campos escritos a lápiz */
+  .login form { display: flex; flex-direction: column; align-items: flex-start; gap: 1rem; width: 100%; }
+  .login label { display: flex; flex-direction: column; gap: .3rem; width: 100%; font-size: 1rem; font-weight: 600; color: var(--crema-suave); }
+  .login input {
+    width: 100%; min-height: 48px; padding: .55rem .2rem .4rem;
+    font: 500 1.2rem var(--letra); color: var(--crema);
+    background: transparent; border: 0; border-bottom: 2px solid rgba(244, 233, 214, .6); border-radius: 0;
+  }
+  .login input:focus { outline: none; border-bottom-color: var(--crema); box-shadow: 0 2px 0 var(--crema); }
+  .login .btn { margin-top: .4rem; }
+  .login .btn:disabled { opacity: .6; cursor: wait; }
+  .bienvenida p.login-error {
+    margin: 0; padding: .5rem .8rem; border-radius: 3px;
+    background: var(--papel); color: var(--rojo); font-weight: 600; font-size: 1rem;
+  }
+
   .solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #sonda { position: absolute; visibility: hidden; padding-bottom: env(safe-area-inset-bottom, 0px); }
 
@@ -248,7 +264,8 @@
   }
 </style>
 <script type="importmap">
-  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/+esm" } }
 </script>
 </head>
 <body>
@@ -309,8 +326,27 @@
     </div>
   </section>
 
+  <section id="login" class="bienvenida login" aria-labelledby="login-titulo" hidden>
+    <div class="bienvenida-caja">
+      <svg class="bienvenida-grulla" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 11 8 3l7 8-7-2z" fill="#d0473f"/><path d="M8 3l7 8-7-2z" fill="#a5322a"/></svg>
+      <h2 id="login-titulo"></h2>
+      <p id="login-texto"></p>
+      <form id="login-form" novalidate>
+        <label><span id="login-usuario-et"></span>
+          <input id="login-usuario" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+        </label>
+        <label><span id="login-clave-et"></span>
+          <input id="login-clave" name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <p id="login-error" class="login-error" role="alert" hidden></p>
+        <button id="login-boton" class="btn" type="submit"></button>
+      </form>
+    </div>
+  </section>
+
 <script type="module">
 import * as THREE from 'three';
+import { createClient } from '@supabase/supabase-js';
 
 /* ==========================================================================
    CONTENIDO: edita aquí los textos.
@@ -332,6 +368,18 @@ const BIENVENIDA = {
   titulo: 'Tu calendario de adviento',
   texto: 'Bea, del 1 al 24 de diciembre una grulla de papel vendrá cada día a traerte una bolsita con una nota dentro.\nLa nota te dirá qué bolsita de verdad te toca abrir: en cada una habrá una foto y un dulce.\nAlgunos días la nota traerá también una pista del regalo del día 24. ¿Lo adivinarás?\nCada una solo se puede abrir en su día, así que no te olvides de volver.',
   boton: 'Conocer a la grulla',
+};
+// Pantalla de login (antes de la bienvenida; solo se ve si no ha entrado nunca en este dispositivo)
+const LOGIN = {
+  titulo: 'Hola, Bea',
+  texto: 'Entra para que la grulla te reconozca.',
+  usuario: 'Usuario',
+  clave: 'Contraseña',
+  boton: 'Entrar',
+  entrando: 'Entrando…',
+  errorDatos: 'Ese usuario o esa contraseña no son correctos.',
+  errorRed: 'No hay conexión. Prueba otra vez en un momento.',
+  faltan: 'Escribe tu usuario y tu contraseña.',
 };
 const CONTENIDO = {
   0:  { alaIzquierda: 'Ejemplo: Hola, Bea. Soy la grulla que te acompañará en diciembre.', alaDerecha: 'Ejemplo: Cada día te traeré una bolsita. Vuelve a verme pronto.' },
@@ -366,6 +414,11 @@ const CONTENIDO = {
         pista: 'Última pista: 1,18. Mañana lo entiendes todo.' },
   24: { nota: 'Ejemplo de nota del día 24. La última, la más bonita.',       bolsa: 'Abre la bolsita roja' },
 };
+/* Supabase: guarda las bolsitas abiertas y las fotos privadas.
+   La clave es pública a propósito: lo que protege los datos son las reglas del servidor
+   (supabase/migraciones/). Los usuarios se guardan por dentro como <usuario>@DOMINIO_USUARIOS. */
+const SUPABASE = { url: 'https://dwaibpjeridzinrnbnao.supabase.co', clave: 'sb_publishable_Y4zCN9Blqi2Q2ta0rPp_lg_SlbJ4Zup' };
+const DOMINIO_USUARIOS = 'josecs5.github.io';
 const DESPUES = { hasta: [2027, 4, 5], texto: 'para el 5 de abril' }; // [año, mes, día]
 const DENTRO = { foto: 'una foto', dulce: 'un dulce' };
 const DIAS_CON_PISTA = Object.keys(CONTENIDO).map(Number).filter((d) => CONTENIDO[d].pista).sort((a, b) => a - b);
@@ -400,6 +453,9 @@ const ui = {
   kIzq: $('k-izq'), kDer: $('k-der'), kGrulla: $('k-grulla'), kBolsa: $('k-bolsa'), sonda: $('sonda'),
   contador: $('contador'), contadorNumero: $('contador-numero'), contadorTexto: $('contador-texto'),
   bien: $('bienvenida'), bienTitulo: $('bienvenida-titulo'), bienTexto: $('bienvenida-texto'), bienBoton: $('bienvenida-boton'),
+  login: $('login'), loginTitulo: $('login-titulo'), loginTexto: $('login-texto'), loginForm: $('login-form'),
+  loginUsuario: $('login-usuario'), loginClave: $('login-clave'), loginUsuarioEt: $('login-usuario-et'), loginClaveEt: $('login-clave-et'),
+  loginError: $('login-error'), loginBoton: $('login-boton'),
 };
 const clamp = THREE.MathUtils.clamp;
 
@@ -1414,12 +1470,82 @@ function bienvenida() {
   });
 }
 
+/* ---------- Cuenta: login con usuario y contraseña (Supabase) ---------- */
+const CLAVE_SESION = 'bea-sesion';
+const supabase = createClient(SUPABASE.url, SUPABASE.clave, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: CLAVE_SESION },
+});
+let sesion = null;
+supabase.auth.onAuthStateChange((_evento, s) => { if (s) sesion = s; });
+
+const correoDeUsuario = (usuario) => `${usuario.replace(/\s+/g, '').toLowerCase()}@${DOMINIO_USUARIOS}`;
+const esAdmin = () => sesion?.user?.app_metadata?.rol === 'admin';
+
+// La sesión guardada en el dispositivo, por si no hay red para comprobarla
+function sesionGuardada() {
+  try { return JSON.parse(localStorage.getItem(CLAVE_SESION)) || null; } catch { return null; }
+}
+
+async function sesionActual() {
+  const guardada = sesionGuardada();
+  const tiempo = new Promise((r) => setTimeout(() => r({ lenta: true }), 5000));
+  const res = await Promise.race([supabase.auth.getSession().catch((error) => ({ error })), tiempo]);
+  if (res.data?.session) return res.data.session;
+  // Sin red (o red muy lenta) pero con sesión guardada: se entra igual; ya se refrescará
+  if ((res.lenta || res.error) && guardada?.user) return guardada;
+  return null;
+}
+
+function entrar() {
+  return sesionActual().then((s) => {
+    if (s) { sesion = s; return; }
+    ui.loginTitulo.textContent = LOGIN.titulo;
+    ui.loginTexto.textContent = LOGIN.texto;
+    ui.loginUsuarioEt.textContent = LOGIN.usuario;
+    ui.loginClaveEt.textContent = LOGIN.clave;
+    ui.loginBoton.textContent = LOGIN.boton;
+    document.body.classList.add('con-bienvenida');
+    ui.login.hidden = false;
+    ui.loginUsuario.focus({ preventScroll: true });
+    return new Promise((resolve) => {
+      const error = (texto, campo) => {
+        ui.loginError.textContent = texto;
+        ui.loginError.hidden = false;
+        campo.focus();
+      };
+      ui.loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (ui.loginBoton.disabled) return;
+        const usuario = ui.loginUsuario.value, clave = ui.loginClave.value;
+        if (!usuario.trim() || !clave) return error(LOGIN.faltan, usuario.trim() ? ui.loginClave : ui.loginUsuario);
+        ui.loginBoton.disabled = true;
+        ui.loginBoton.textContent = LOGIN.entrando;
+        let res;
+        try { res = await supabase.auth.signInWithPassword({ email: correoDeUsuario(usuario), password: clave }); }
+        catch (err) { res = { error: err }; }
+        ui.loginBoton.disabled = false;
+        ui.loginBoton.textContent = LOGIN.boton;
+        if (res.error || !res.data?.session) {
+          const datosMal = res.error?.status === 400 || res.error?.code === 'invalid_credentials';
+          ui.loginClave.value = '';
+          return error(datosMal ? LOGIN.errorDatos : LOGIN.errorRed, datosMal ? ui.loginUsuario : ui.loginBoton);
+        }
+        sesion = res.data.session;
+        ui.loginError.hidden = true;
+        ui.login.classList.add('saliendo');
+        document.body.classList.remove('con-bienvenida');
+        setTimeout(() => { ui.login.hidden = true; resolve(); }, reducido ? 0 : 600);
+      });
+    });
+  });
+}
+
 async function iniciar() {
   ajustar();
   requestAnimationFrame(bucle);
   const espera = (ms) => new Promise((r) => setTimeout(r, ms));
   const fuentes = Promise.race([document.fonts.load('700 120px "Shantell Sans"'), espera(2500)]).catch(() => {});
-  const [fecha] = await Promise.all([fechaActual(), fuentes, bienvenida()]);
+  const [fecha] = await Promise.all([fechaActual(), fuentes, entrar().then(bienvenida)]);
   ajustar();
   est.desfase = fecha.getTime() - Date.now();
   const dia = diaMadrid(fecha);
