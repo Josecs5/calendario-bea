@@ -1082,15 +1082,41 @@ function diasHastaDespues() {
 }
 const textoHecho = () => (est.dia === 24 ? TEXTO.fin : TEXTO.manana(est.dia + 1));
 
-/* Bolsitas ya abiertas: se recuerdan en el móvil (con ?prueba, solo mientras la página está abierta) */
+/* Bolsitas ya abiertas: se guardan en su cuenta (Supabase) y, como copia, en el móvil.
+   Si no hay red al abrir una, queda en el móvil y se sube la próxima vez que entre.
+   Con ?prueba, solo mientras la página está abierta. */
 const abiertasPrueba = new Set();
+const abiertasCuenta = new Set();
+function abiertaEnMovil(dia) {
+  try { return localStorage.getItem(`bea-bolsita-${dia}`) === '1'; } catch { return false; }
+}
 function estaAbierta(dia) {
   if (PRUEBA) return abiertasPrueba.has(dia);
-  try { return localStorage.getItem(`bea-bolsita-${dia}`) === '1'; } catch { return false; }
+  return abiertasCuenta.has(dia) || abiertaEnMovil(dia);
+}
+// Un día por petición: si uno lo rechaza el servidor (día que aún no ha llegado), los demás se guardan igual
+function subirAbiertas(dias) {
+  if (!sesion?.user) return Promise.resolve();
+  return Promise.all(dias.map((dia) => supabase.from('bolsitas_abiertas')
+    .upsert({ user_id: sesion.user.id, dia }, { onConflict: 'user_id,dia', ignoreDuplicates: true })
+    .then(({ error }) => { if (!error) abiertasCuenta.add(dia); }, () => { /* sin red: se reintenta al volver */ })));
 }
 function guardarAbierta(dia) {
   if (PRUEBA) { abiertasPrueba.add(dia); return; }
   try { localStorage.setItem(`bea-bolsita-${dia}`, '1'); } catch { /* sin almacenamiento */ }
+  subirAbiertas([dia]);
+}
+// Al entrar: lo que ya tiene en su cuenta, y se sube lo que solo estaba en este móvil
+async function cargarAbiertas() {
+  if (PRUEBA || !sesion?.user) return;
+  let res;
+  try { res = await supabase.from('bolsitas_abiertas').select('dia'); } catch { return; }
+  if (res.error || !res.data) return; // sin red: vale la copia del móvil
+  const data = res.data;
+  for (const { dia } of data) abiertasCuenta.add(dia);
+  const pendientes = [];
+  for (let d = 1; d <= 24; d++) if (abiertaEnMovil(d) && !abiertasCuenta.has(d)) pendientes.push(d);
+  await subirAbiertas(pendientes);
 }
 const colorInterior = () => (est.dia === 24 ? '#4a1b18' : '#3b2a1c');
 function dejarAbierta() {
@@ -1546,6 +1572,7 @@ async function iniciar() {
   const espera = (ms) => new Promise((r) => setTimeout(r, ms));
   const fuentes = Promise.race([document.fonts.load('700 120px "Shantell Sans"'), espera(2500)]).catch(() => {});
   const [fecha] = await Promise.all([fechaActual(), fuentes, entrar().then(bienvenida)]);
+  await Promise.race([cargarAbiertas(), espera(4000)]);
   ajustar();
   est.desfase = fecha.getTime() - Date.now();
   const dia = diaMadrid(fecha);
