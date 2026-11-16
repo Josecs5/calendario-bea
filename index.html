@@ -1493,8 +1493,9 @@ function diaMadrid(fecha) {
 
 /* ---------- Bienvenida: solo la primera vez (se recuerda con una cookie) ---------- */
 const COOKIE_BIENVENIDA = 'bea-bienvenida=1';
+const veraBienvenida = () => PRUEBA || !document.cookie.split('; ').includes(COOKIE_BIENVENIDA);
 function bienvenida() {
-  if (!PRUEBA && document.cookie.split('; ').includes(COOKIE_BIENVENIDA)) return Promise.resolve();
+  if (!veraBienvenida()) return Promise.resolve();
   ui.bienTitulo.textContent = BIENVENIDA.titulo;
   ui.bienTexto.textContent = BIENVENIDA.texto;
   ui.bienBoton.textContent = BIENVENIDA.boton;
@@ -1574,7 +1575,7 @@ function entrar() {
         sesion = res.data.session;
         ui.loginError.hidden = true;
         ui.login.classList.add('saliendo');
-        document.body.classList.remove('con-bienvenida');
+        if (!veraBienvenida()) document.body.classList.remove('con-bienvenida'); // si viene la bienvenida, la quita ella
         setTimeout(() => { ui.login.hidden = true; resolve(); }, reducido ? 0 : 600);
       });
     });
@@ -1606,7 +1607,13 @@ function mostrarFoto(dia) {
     if (ui.notaImg.getAttribute('src') !== url) {
       ui.polaroid.classList.add('cargando');
       ui.notaImg.onload = () => { ui.polaroid.classList.remove('cargando'); colocarNota(objetivo()); };
-      ui.notaImg.onerror = () => { ui.polaroid.hidden = true; colocarNota(objetivo()); };
+      ui.notaImg.onerror = () => {
+        ui.polaroid.classList.remove('cargando');
+        ui.polaroid.hidden = true;
+        ui.notaImg.removeAttribute('src');
+        fotos.delete(dia); // la próxima vez se pide un enlace nuevo
+        colocarNota(objetivo());
+      };
       ui.notaImg.src = url;
     }
     ui.notaImg.alt = `Foto del día ${dia}`;

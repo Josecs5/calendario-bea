@@ -23,7 +23,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageCms, ImageOps
 
 SUPABASE_URL = 'https://dwaibpjeridzinrnbnao.supabase.co'
 SUPABASE_CLAVE = 'sb_publishable_Y4zCN9Blqi2Q2ta0rPp_lg_SlbJ4Zup'  # pública a propósito
@@ -72,7 +72,14 @@ def preparar(ruta):
     """Devuelve (bytes JPEG sin metadatos, (ancho, alto))."""
     with Image.open(ruta) as im:
         im = ImageOps.exif_transpose(im)
+        icc = im.info.get('icc_profile')
         im = im.convert('RGB')
+        if icc:  # p. ej. Display P3 del iPhone: se pasa a sRGB para que los colores no salgan apagados
+            try:
+                im = ImageCms.profileToProfile(im, ImageCms.ImageCmsProfile(io.BytesIO(icc)),
+                                               ImageCms.createProfile('sRGB'), outputMode='RGB')
+            except (ImageCms.PyCMSError, OSError):
+                pass  # perfil dañado: se queda como está
         im.thumbnail((LADO_LARGO, LADO_LARGO), Image.LANCZOS)  # nunca amplía
         limpia = Image.new('RGB', im.size)  # copia solo los píxeles: sin EXIF, GPS ni perfiles
         limpia.paste(im)

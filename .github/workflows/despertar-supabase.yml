@@ -1,12 +1,18 @@
 # Los proyectos gratuitos de Supabase se pausan tras 7 días sin uso, y entonces Bea no podría entrar.
 # Cada tres días hacemos una consulta pequeña (devuelve [] por las reglas, pero toca la base de datos).
 # La URL y la clave son públicas (las mismas que en index.html).
+#
+# GitHub desactiva los cron de un repo público tras 60 días sin commits; por eso el propio
+# workflow se vuelve a activar en cada ejecución (eso reinicia la cuenta de los 60 días).
 name: Despertar Supabase
 
 on:
   schedule:
     - cron: '17 6 */3 * *'
   workflow_dispatch:
+
+permissions:
+  actions: write
 
 jobs:
   despertar:
@@ -20,3 +26,8 @@ jobs:
           # El calendario acaba con el contador del 5 de abril de 2027
           if [ "$(date -u +%Y%m%d)" -gt 20270406 ]; then echo "Calendario terminado"; exit 0; fi
           curl -fsS "$URL/rest/v1/bolsitas_abiertas?select=dia&limit=1" -H "apikey: $CLAVE"
+
+      - name: Mantener activo este workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/despertar-supabase.yml/enable"
