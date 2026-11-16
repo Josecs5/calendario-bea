@@ -1,0 +1,22 @@
+# Los proyectos gratuitos de Supabase se pausan tras 7 días sin uso, y entonces Bea no podría entrar.
+# Cada tres días hacemos una consulta pequeña (devuelve [] por las reglas, pero toca la base de datos).
+# La URL y la clave son públicas (las mismas que en index.html).
+name: Despertar Supabase
+
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  despertar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta a la base de datos
+        env:
+          URL: https://dwaibpjeridzinrnbnao.supabase.co
+          CLAVE: sb_publishable_Y4zCN9Blqi2Q2ta0rPp_lg_SlbJ4Zup
+        run: |
+          # El calendario acaba con el contador del 5 de abril de 2027
+          if [ "$(date -u +%Y%m%d)" -gt 20270406 ]; then echo "Calendario terminado"; exit 0; fi
+          curl -fsS "$URL/rest/v1/bolsitas_abiertas?select=dia&limit=1" -H "apikey: $CLAVE"
