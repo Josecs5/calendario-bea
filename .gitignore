@@ -1,3 +1,6 @@
 # Capturas y temporales de las revisiones en navegador
 capturas/
 .playwright-mcp/
+
+# Fotos de cada día: privadas, se suben con herramientas/subir_fotos.py
+fotos/
