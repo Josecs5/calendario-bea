@@ -131,7 +131,7 @@
   .nota:not([hidden]) { animation: nota-entra .5s cubic-bezier(.2, .9, .3, 1.15) backwards; }
   @keyframes nota-entra { from { opacity: 0; transform: translate(-50%, 20px) rotate(-5deg) scale(.9); } }
   /* La foto del día: una polaroid pegada arriba de la nota (o dos, una junto a otra, si el día
-     tiene dos). No se recorta: si no llena el marco, el hueco es del mismo blanco que el marco. */
+     tiene dos). No se recorta: con dos, si una no llena su marco, el hueco es del mismo blanco. */
   .fotos:not([hidden]) { display: flex; align-items: flex-start; gap: 8px; margin: -6px 2px 1.1rem; }
   .polaroid {
     flex: 1 1 0; min-width: 0; margin: 0; padding: 10px 10px 30px;
@@ -145,6 +145,11 @@
   /* --foto-max lo baja colocarNota() cuando la nota no cabe sobre la bolsita */
   .polaroid img { display: block; width: 100%; height: auto; max-height: var(--foto-max, 34vh); object-fit: contain; background: #fffdf8; }
   .polaroid.cargando img { aspect-ratio: 4 / 3; background: #efe6d6; }
+  /* Con una sola foto, el marco se ajusta a ella: una foto vertical encogida no se queda
+     como un sello en medio de un marco blanco ancho */
+  .fotos:not(.dos) { justify-content: center; }
+  .fotos:not(.dos) .polaroid:not(.cargando) { flex: 0 1 auto; }
+  .fotos:not(.dos) .polaroid:not(.cargando) img { width: auto; max-width: 100%; }
   .nota-fecha { margin: 0 0 .6rem; font-size: 1.35rem; font-weight: 700; font-variation-settings: 'INFM' 70, 'BNCE' 15; color: var(--rojo); }
   /* La pauta tiene la misma altura que la línea para que el texto se apoye en ella */
   .nota-texto {
@@ -1365,18 +1370,27 @@ function colocarNota(o) {
   const nw = ui.nota.offsetWidth;
   const x = clamp(bx, nw / 2 + 16, Math.max(nw / 2 + 16, med.W - nw / 2 - 16));
   ui.nota.style.left = `${x}px`;
-  ui.nota.style.bottom = `${med.H - arribaBolsa}px`;
-  const alto = Math.max(arribaBolsa - med.tituloAbajo - 8, 120);
+  /* Lo normal es que la nota quepa sobre la bolsita. Si no cabe ni con la foto a FOTO_BUENA
+     (días con pista o con dos fotos), baja tapando la bolsita, hasta el borde de la pantalla. */
+  const arriba = med.tituloAbajo + 8;
+  const sobreBolsa = Math.max(arribaBolsa - arriba, 120);
+  const pantalla = Math.max(med.H - 16 - arriba, sobreBolsa);
+  const imgs = fotosVistas();
+  const hFotos = imgs.length ? Math.max(...imgs.map((img) => img.offsetHeight)) : 0;
+  const necesita = ui.nota.scrollHeight - hFotos + (imgs.length ? FOTO_BUENA : 0);
+  const alto = clamp(necesita, sobreBolsa, pantalla);
+  ui.nota.style.bottom = `${med.H - arriba - alto}px`;
   ui.nota.style.maxHeight = `${alto}px`;
   ajustarFotos(alto);
 }
-/* Si la nota no cabe sobre la bolsita, las fotos se encogen (hasta FOTO_MIN) antes que obligar a
-   desplazarla; si sobra sitio, vuelven a crecer hasta el 34vh del CSS. Va en cada fotograma, así
-   que solo escribe cuando el tamaño cambia de verdad. */
-const FOTO_MIN = 120;
+/* Si la nota no cabe, las fotos se encogen (hasta FOTO_MIN) antes que obligar a desplazarla;
+   si sobra sitio, vuelven a crecer hasta el 34vh del CSS. Va en cada fotograma, así que solo
+   escribe cuando el tamaño cambia de verdad. */
+const FOTO_MIN = 120, FOTO_BUENA = 200;
+const fotosVistas = () => (ui.fotos.hidden ? []
+  : ui.polaroids.filter((f) => !f.hidden && !f.classList.contains('cargando')).map((f) => f.firstElementChild));
 function ajustarFotos(alto) {
-  if (ui.fotos.hidden) return;
-  const imgs = ui.polaroids.filter((f) => !f.hidden && !f.classList.contains('cargando')).map((f) => f.firstElementChild);
+  const imgs = fotosVistas();
   if (!imgs.length) return;
   const h = Math.max(...imgs.map((img) => img.offsetHeight));
   const falta = ui.nota.scrollHeight - ui.nota.clientHeight;
