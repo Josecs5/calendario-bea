@@ -130,14 +130,18 @@
   }
   .nota:not([hidden]) { animation: nota-entra .5s cubic-bezier(.2, .9, .3, 1.15) backwards; }
   @keyframes nota-entra { from { opacity: 0; transform: translate(-50%, 20px) rotate(-5deg) scale(.9); } }
-  /* La foto del día: una polaroid pegada arriba de la nota. No se recorta: si no llena el marco,
-     el hueco es del mismo blanco que el marco. */
+  /* La foto del día: una polaroid pegada arriba de la nota (o dos, una junto a otra, si el día
+     tiene dos). No se recorta: si no llena el marco, el hueco es del mismo blanco que el marco. */
+  .fotos:not([hidden]) { display: flex; align-items: flex-start; gap: 8px; margin: -6px 2px 1.1rem; }
   .polaroid {
-    margin: -6px 2px 1.1rem; padding: 10px 10px 30px;
+    flex: 1 1 0; min-width: 0; margin: 0; padding: 10px 10px 30px;
     background: #fffdf8;
     box-shadow: 0 6px 12px rgba(24, 12, 5, .28), 0 1px 0 rgba(24, 12, 5, .2);
     transform: rotate(2deg);
   }
+  .fotos.dos .polaroid { padding: 7px 7px 22px; }
+  .fotos.dos .polaroid:first-child { transform: rotate(-2.5deg); }
+  .fotos.dos .polaroid:last-child { margin-top: 12px; }
   .polaroid img { display: block; width: 100%; height: auto; max-height: 34vh; object-fit: contain; background: #fffdf8; }
   .polaroid.cargando img { aspect-ratio: 4 / 3; background: #efe6d6; }
   .nota-fecha { margin: 0 0 .6rem; font-size: 1.35rem; font-weight: 700; font-variation-settings: 'INFM' 70, 'BNCE' 15; color: var(--rojo); }
@@ -305,7 +309,10 @@
     </p>
 
     <section id="nota" class="nota" aria-labelledby="nota-fecha" hidden>
-      <figure id="nota-polaroid" class="polaroid" hidden><img id="nota-img" alt=""></figure>
+      <div id="nota-fotos" class="fotos" hidden>
+        <figure class="polaroid" hidden><img alt=""></figure>
+        <figure class="polaroid" hidden><img alt=""></figure>
+      </div>
       <p id="nota-fecha" class="nota-fecha"></p>
       <p id="nota-texto" class="nota-texto"></p>
       <div id="nota-pista" class="pista" hidden>
@@ -467,7 +474,7 @@ const ui = {
   login: $('login'), loginTitulo: $('login-titulo'), loginTexto: $('login-texto'), loginForm: $('login-form'),
   loginUsuario: $('login-usuario'), loginClave: $('login-clave'), loginUsuarioEt: $('login-usuario-et'), loginClaveEt: $('login-clave-et'),
   loginError: $('login-error'), loginBoton: $('login-boton'),
-  polaroid: $('nota-polaroid'), notaImg: $('nota-img'),
+  fotos: $('nota-fotos'), polaroids: [...$('nota-fotos').children],
 };
 const clamp = THREE.MathUtils.clamp;
 
@@ -1015,8 +1022,8 @@ function cambiarFase(f) {
 
 function iniciarDia(dia) {
   est.dia = dia;
-  ui.polaroid.hidden = true;
-  if (hayBolsita(dia)) urlFoto(dia).then((url) => { if (url) new Image().src = url; });
+  ui.fotos.hidden = true;
+  if (hayBolsita(dia)) urlsFotos(dia).then((urls) => urls.forEach((url) => { new Image().src = url; }));
   est.tocadas = { izq: false, der: false };
   est.confeti = false;
   est.cuenta = false;
@@ -1582,43 +1589,57 @@ function entrar() {
   });
 }
 
-/* ---------- Foto del día (almacén privado: el servidor no la da antes de su día) ---------- */
+/* ---------- Fotos del día (almacén privado: el servidor no las da antes de su día) ----------
+   Cada día tiene dia-NN.jpg y, a veces, una segunda: dia-NN-2.jpg. */
 const VIDA_URL_FOTO = 3600; // segundos que vale el enlace firmado
 const fotos = new Map(); // dia -> { hasta, promesa }
-function urlFoto(dia) {
+function urlsFotos(dia) {
   const guardada = fotos.get(dia);
   if (guardada && guardada.hasta > Date.now()) return guardada.promesa;
   const promesa = (async () => {
-    if (!sesion?.user || !hayBolsita(dia)) return null;
-    try {
-      const nombre = `dia-${String(dia).padStart(2, '0')}.jpg`;
-      const { data, error } = await supabase.storage.from('fotos').createSignedUrl(nombre, VIDA_URL_FOTO);
-      return error ? null : data.signedUrl;
-    } catch { return null; }
+    if (!sesion?.user || !hayBolsita(dia)) return [];
+    const nn = String(dia).padStart(2, '0');
+    const urls = await Promise.all([`dia-${nn}.jpg`, `dia-${nn}-2.jpg`].map(async (nombre) => {
+      try {
+        const { data, error } = await supabase.storage.from('fotos').createSignedUrl(nombre, VIDA_URL_FOTO);
+        return error ? null : data.signedUrl;
+      } catch { return null; }
+    }));
+    return urls.filter(Boolean);
   })();
   fotos.set(dia, { hasta: Date.now() + (VIDA_URL_FOTO - 600) * 1000, promesa });
-  promesa.then((url) => { if (!url) fotos.delete(dia); }); // sin foto o sin red: se vuelve a pedir la próxima vez
+  promesa.then((urls) => { if (!urls.length) fotos.delete(dia); }); // sin foto o sin red: se vuelve a pedir la próxima vez
   return promesa;
 }
+function recolocarFotos() {
+  const vistas = ui.polaroids.filter((fig) => !fig.hidden).length;
+  ui.fotos.classList.toggle('dos', vistas > 1);
+  ui.fotos.hidden = !vistas;
+  colocarNota(objetivo());
+}
 function mostrarFoto(dia) {
-  ui.polaroid.hidden = true;
-  urlFoto(dia).then((url) => {
-    if (!url || est.dia !== dia || ui.nota.hidden) return; // ya es otro día o se cerró la nota
-    if (ui.notaImg.getAttribute('src') !== url) {
-      ui.polaroid.classList.add('cargando');
-      ui.notaImg.onload = () => { ui.polaroid.classList.remove('cargando'); colocarNota(objetivo()); };
-      ui.notaImg.onerror = () => {
-        ui.polaroid.classList.remove('cargando');
-        ui.polaroid.hidden = true;
-        ui.notaImg.removeAttribute('src');
-        fotos.delete(dia); // la próxima vez se pide un enlace nuevo
-        colocarNota(objetivo());
-      };
-      ui.notaImg.src = url;
-    }
-    ui.notaImg.alt = `Foto del día ${dia}`;
-    ui.polaroid.hidden = false;
-    colocarNota(objetivo());
+  ui.fotos.hidden = true;
+  urlsFotos(dia).then((urls) => {
+    if (!urls.length || est.dia !== dia || ui.nota.hidden) return; // ya es otro día o se cerró la nota
+    ui.polaroids.forEach((fig, i) => {
+      const img = fig.firstElementChild, url = urls[i];
+      if (!url) { fig.hidden = true; img.removeAttribute('src'); return; }
+      if (img.getAttribute('src') !== url) {
+        fig.classList.add('cargando');
+        img.onload = () => { fig.classList.remove('cargando'); colocarNota(objetivo()); };
+        img.onerror = () => {
+          fig.classList.remove('cargando');
+          fig.hidden = true;
+          img.removeAttribute('src');
+          fotos.delete(dia); // la próxima vez se piden enlaces nuevos
+          recolocarFotos();
+        };
+        img.src = url;
+      }
+      img.alt = urls.length > 1 ? `Foto ${i + 1} de ${urls.length} del día ${dia}` : `Foto del día ${dia}`;
+      fig.hidden = false;
+    });
+    recolocarFotos();
   });
 }
 

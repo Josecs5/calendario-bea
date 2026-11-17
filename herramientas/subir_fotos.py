@@ -6,9 +6,13 @@ Uso:
 En la carpeta, el número del día es el primer número del nombre del archivo:
     1.jpg, 03-playa.png, "dia 12.jpeg"...  → día 1, 3, 12.
 
+Un día puede tener dos fotos ("dia 24.jpg" y "dia 24 (2).jpg"): por orden alfabético, la
+primera se sube como dia-NN.jpg y la segunda como dia-NN-2.jpg. Si un día solo tiene una,
+se borra la segunda que hubiera de antes.
+
 Cada foto se endereza (según el giro que guarda el móvil), se reduce a 1600 px de lado
-largo, se le quitan los metadatos (fecha, ubicación GPS...) y se sube como dia-NN.jpg.
-Si ya había una foto para ese día, se cambia por la nueva.
+largo y se le quitan los metadatos (fecha, ubicación GPS...). Si ya había una foto con ese
+nombre, se cambia por la nueva.
 
 Pide el usuario y la contraseña de la cuenta admin (o los lee de CALENDARIO_USUARIO
 y CALENDARIO_CLAVE). La carpeta fotos/ está en .gitignore: las fotos nunca van al repositorio.
@@ -30,6 +34,7 @@ SUPABASE_CLAVE = 'sb_publishable_Y4zCN9Blqi2Q2ta0rPp_lg_SlbJ4Zup'  # pública a 
 DOMINIO_USUARIOS = 'josecs5.github.io'  # igual que en index.html
 LADO_LARGO = 1600
 CALIDAD = 85
+MAX_POR_DIA = 2
 EXTENSIONES = {'.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'}
 
 try:
@@ -68,6 +73,12 @@ def dia_del_nombre(nombre):
     return int(m.group()) if m else None
 
 
+def orden(ruta):
+    """La foto "dia 24.jpg" va antes que su copia "dia 24 (2).jpg", aunque el espacio ordene antes que el punto."""
+    base = re.sub(r'\s*\(\d+\)$', '', ruta.stem).lower()
+    return base, ruta.stem.lower(), ruta.suffix.lower()
+
+
 def preparar(ruta):
     """Devuelve (bytes JPEG sin metadatos, (ancho, alto))."""
     with Image.open(ruta) as im:
@@ -96,7 +107,7 @@ def main():
         sys.exit(f'No existe la carpeta {carpeta}. Crea "fotos/" y pon dentro las fotos (1.jpg, 2.jpg...).')
 
     elegidas = {}
-    for ruta in sorted(carpeta.iterdir()):
+    for ruta in sorted(carpeta.iterdir(), key=orden):
         if not ruta.is_file() or ruta.suffix.lower() not in EXTENSIONES:
             continue
         dia = dia_del_nombre(ruta.stem)
@@ -107,10 +118,12 @@ def main():
             print(f'  aviso: {ruta.name} es HEIC (iPhone). Instala pillow-heif '
                   f'(pip install pillow-heif) o pásala a JPG; se salta')
             continue
-        if dia in elegidas:
-            print(f'  aviso: {ruta.name} repite el día {dia} (ya está {elegidas[dia].name}); se salta')
+        ya = elegidas.setdefault(dia, [])
+        if len(ya) >= MAX_POR_DIA:
+            print(f'  aviso: {ruta.name} sería la {len(ya) + 1}.ª foto del día {dia} '
+                  f'(caben {MAX_POR_DIA}: {", ".join(r.name for r in ya)}); se salta')
             continue
-        elegidas[dia] = ruta
+        ya.append(ruta)
 
     if not elegidas:
         sys.exit('No hay ninguna foto que subir.')
@@ -121,21 +134,25 @@ def main():
 
     fallos = 0
     for dia in sorted(elegidas):
-        ruta = elegidas[dia]
-        try:
-            datos, (ancho, alto) = preparar(ruta)
-        except Exception as e:  # archivo dañado o formato raro
-            print(f'  día {dia}: no se ha podido leer {ruta.name} ({e})')
-            fallos += 1
-            continue
-        estado, cuerpo = peticion('POST', f'/storage/v1/object/fotos/dia-{dia:02d}.jpg', datos, {
-            'Authorization': f'Bearer {token}', 'Content-Type': 'image/jpeg',
-            'x-upsert': 'true', 'cache-control': '3600'})
-        if estado == 200:
-            print(f'  día {dia}: subida ({ancho}×{alto}, {len(datos) // 1024} KB) ← {ruta.name}')
-        else:
-            print(f'  día {dia}: error {estado} al subir {ruta.name}: {cuerpo[:200].decode(errors="replace")}')
-            fallos += 1
+        for n, ruta in enumerate(elegidas[dia], 1):
+            nombre = f'dia-{dia:02d}.jpg' if n == 1 else f'dia-{dia:02d}-{n}.jpg'
+            try:
+                datos, (ancho, alto) = preparar(ruta)
+            except Exception as e:  # archivo dañado o formato raro
+                print(f'  día {dia}: no se ha podido leer {ruta.name} ({e})')
+                fallos += 1
+                continue
+            estado, cuerpo = peticion('POST', f'/storage/v1/object/fotos/{nombre}', datos, {
+                'Authorization': f'Bearer {token}', 'Content-Type': 'image/jpeg',
+                'x-upsert': 'true', 'cache-control': '3600'})
+            if estado == 200:
+                print(f'  día {dia}: {nombre} subida ({ancho}×{alto}, {len(datos) // 1024} KB) ← {ruta.name}')
+            else:
+                print(f'  día {dia}: error {estado} al subir {ruta.name}: {cuerpo[:200].decode(errors="replace")}')
+                fallos += 1
+        if len(elegidas[dia]) < 2:  # si antes tenía segunda foto, que no se quede colgando
+            peticion('DELETE', '/storage/v1/object/fotos', json.dumps({'prefixes': [f'dia-{dia:02d}-2.jpg']}).encode(),
+                     {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'})
 
     sin_foto = [d for d in range(1, 25) if d not in elegidas]
     if sin_foto:
