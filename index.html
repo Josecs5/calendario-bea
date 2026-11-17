@@ -142,7 +142,8 @@
   .fotos.dos .polaroid { padding: 7px 7px 22px; }
   .fotos.dos .polaroid:first-child { transform: rotate(-2.5deg); }
   .fotos.dos .polaroid:last-child { margin-top: 12px; }
-  .polaroid img { display: block; width: 100%; height: auto; max-height: 34vh; object-fit: contain; background: #fffdf8; }
+  /* --foto-max lo baja colocarNota() cuando la nota no cabe sobre la bolsita */
+  .polaroid img { display: block; width: 100%; height: auto; max-height: var(--foto-max, 34vh); object-fit: contain; background: #fffdf8; }
   .polaroid.cargando img { aspect-ratio: 4 / 3; background: #efe6d6; }
   .nota-fecha { margin: 0 0 .6rem; font-size: 1.35rem; font-weight: 700; font-variation-settings: 'INFM' 70, 'BNCE' 15; color: var(--rojo); }
   /* La pauta tiene la misma altura que la línea para que el texto se apoye en ella */
@@ -378,6 +379,7 @@ import { createClient } from '@supabase/supabase-js';
         pista (opcional): una pista sobre el regalo del día 24. Sale en un recorte dentro de la nota
              y se numera sola ("Pista 2 de 6"). Para mover una pista de día, cambia la línea de sitio.
         dulce (opcional): qué dulce concreto lleva esa bolsita; si no se pone, sale DENTRO.dulce.
+        foto (opcional): igual, para la foto (p. ej. 'dos fotos'); si no se pone, sale DENTRO.foto.
    - DENTRO: lo que se ve debajo de la etiqueta en los días 1–23 (la bolsita que se da en persona).
    - DESPUES: desde el 25 de diciembre, un contador gigante con los días que faltan hasta esa fecha.
    Todos los textos de ahora son DE EJEMPLO.
@@ -401,7 +403,7 @@ const LOGIN = {
 };
 const CONTENIDO = {
   0:  { alaIzquierda: 'Ejemplo: Hola, Bea. Soy la grulla que te acompañará en diciembre.', alaDerecha: 'Ejemplo: Cada día te traeré una bolsita. Vuelve a verme pronto.' },
-  1:  { nota: 'Ejemplo de nota del día 1. Aquí irá el mensaje de verdad.',  bolsa: 'Abre la bolsita 1' },
+  1:  { nota: 'Ejemplo de nota del día 1. Aquí irá el mensaje de verdad.',  bolsa: 'Abre la bolsita 1', foto: 'dos fotos' },
   2:  { nota: 'Ejemplo de nota del día 2.',                                  bolsa: 'Abre la bolsita 2' },
   3:  { nota: 'Ejemplo de nota del día 3.',                                  bolsa: 'Abre la bolsita 3' },
   4:  { nota: 'Ejemplo de nota del día 4.',                                  bolsa: 'Abre la bolsita 4',
@@ -1008,7 +1010,7 @@ function cambiarFase(f) {
       ui.notaPistaTexto.textContent = c.pista;
     }
     ui.notaDentro.hidden = est.dia === 24; // el 24 es el regalo grande
-    ui.notaFoto.textContent = DENTRO.foto;
+    ui.notaFoto.textContent = c.foto || DENTRO.foto;
     ui.notaDulce.textContent = c.dulce || DENTRO.dulce;
     mostrarFoto(est.dia);
     colocarNota(objetivo());
@@ -1364,7 +1366,26 @@ function colocarNota(o) {
   const x = clamp(bx, nw / 2 + 16, Math.max(nw / 2 + 16, med.W - nw / 2 - 16));
   ui.nota.style.left = `${x}px`;
   ui.nota.style.bottom = `${med.H - arribaBolsa}px`;
-  ui.nota.style.maxHeight = `${Math.max(arribaBolsa - med.tituloAbajo - 8, 120)}px`;
+  const alto = Math.max(arribaBolsa - med.tituloAbajo - 8, 120);
+  ui.nota.style.maxHeight = `${alto}px`;
+  ajustarFotos(alto);
+}
+/* Si la nota no cabe sobre la bolsita, las fotos se encogen (hasta FOTO_MIN) antes que obligar a
+   desplazarla; si sobra sitio, vuelven a crecer hasta el 34vh del CSS. Va en cada fotograma, así
+   que solo escribe cuando el tamaño cambia de verdad. */
+const FOTO_MIN = 120;
+function ajustarFotos(alto) {
+  if (ui.fotos.hidden) return;
+  const imgs = ui.polaroids.filter((f) => !f.hidden && !f.classList.contains('cargando')).map((f) => f.firstElementChild);
+  if (!imgs.length) return;
+  const h = Math.max(...imgs.map((img) => img.offsetHeight));
+  const falta = ui.nota.scrollHeight - ui.nota.clientHeight;
+  const sobra = falta > 0 ? -falta : alto - ui.nota.offsetHeight;
+  const max = Math.floor(clamp(h + sobra, FOTO_MIN, med.H * 0.34));
+  if (Math.abs(max - (ajustarFotos.max ?? Infinity)) >= 1) {
+    ajustarFotos.max = max;
+    ui.fotos.style.setProperty('--foto-max', `${max}px`);
+  }
 }
 
 /* ---------- Nieve: recortes de papel de perforadora que caen dando vueltas ---------- */
